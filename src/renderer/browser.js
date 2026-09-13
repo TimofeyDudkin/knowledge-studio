@@ -116,9 +116,17 @@ window.BrowserModule = (() => {
     Persist.save();
   }
 
+  function _escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
   function addCustomTab(url, label) {
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+    let hostname;
+    try { hostname = new URL(url).hostname; }
+    catch { showBrowserStatus('Некорректный URL', 'warn'); return; }
     const id = 'custom_' + Date.now();
-    _customTabs.push({ id, label: label || new URL(url).hostname, favicon: '🌐', url, inject: injectFallback });
+    _customTabs.push({ id, label: label || hostname, favicon: '🌐', url, inject: injectFallback });
     renderTabsBar();
     switchTab(id);
   }
@@ -126,8 +134,8 @@ window.BrowserModule = (() => {
   function renderTabsBar() {
     const tabs = getAllTabs();
     $tabsBar.innerHTML = tabs.map(t => `
-      <button class="browser-tab ${t.id === _activeTabId ? 'active' : ''}" data-tab-id="${t.id}">
-        <span class="tab-favicon">${t.favicon}</span>${t.label}
+      <button class="browser-tab ${t.id === _activeTabId ? 'active' : ''}" data-tab-id="${_escHtml(t.id)}">
+        <span class="tab-favicon">${_escHtml(t.favicon)}</span>${_escHtml(t.label)}
       </button>`).join('') +
       `<button class="browser-tab-add" id="btn-add-tab" title="Добавить вкладку">+</button>`;
 
@@ -145,7 +153,20 @@ window.BrowserModule = (() => {
 
   async function sendQuestion(autoSubmit = false) {
     if (_injecting) return;
+    // Захватываем guard СРАЗУ — иначе двойной клик до первой инициализации
+    // webview (await wait(800) ниже) проходит guard дважды и вызывает
+    // initWebview() параллельно, пересоздавая <webview> на середине первого вызова.
+    _injecting = true;
 
+    try {
+      await _sendQuestionInner(autoSubmit);
+    } finally {
+      _injecting = false;
+      setTimeout(() => setSendBtnState('idle'), 2000);
+    }
+  }
+
+  async function _sendQuestionInner(autoSubmit) {
     const nodeId = AppState.get('selectedNodeId');
     if (!nodeId) {
       showBrowserStatus('⚠ Выбери вопрос в дереве', 'warn');
@@ -206,7 +227,6 @@ ${chain}
     const tab = getAllTabs().find(t => t.id === _activeTabId);
     const injectFn = tab?.inject || injectFallback;
 
-    _injecting = true;
     setSendBtnState('sending');
 
     try {
@@ -228,9 +248,6 @@ ${chain}
       console.warn('[browser] inject error:', err);
       setSendBtnState('error');
       showBrowserStatus('Ошибка: ' + err.message, 'warn');
-    } finally {
-      _injecting = false;
-      setTimeout(() => setSendBtnState('idle'), 2000);
     }
   }
 

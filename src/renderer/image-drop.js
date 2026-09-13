@@ -69,8 +69,12 @@ window.ImageDropModule = (() => {
     const currentAnswer = node.answer || '';
     const newAnswer = currentAnswer + mdImg;
 
-    // Если сейчас в режиме редактирования — вставляем в textarea
-    const ta = document.getElementById('ap-textarea');
+    // Если сейчас в режиме редактирования — вставляем в textarea.
+    // Есть два независимых редактора с одинаковой разметкой: answer-panel
+    // (#ap-textarea) и панель узла в графе (#gnp-ta) — используем тот, что
+    // сейчас реально открыт, иначе вставка в VIEW-режиме затирает несохранённый
+    // текст второго редактора значением node.answer из хранилища.
+    const ta = document.getElementById('ap-textarea') || document.getElementById('gnp-ta');
     if (ta) {
       // В textarea вставляем плейсхолдер, а не полный base64 —
       // иначе редактор зависает на огромной строке.
@@ -179,10 +183,16 @@ window.ImageDropModule = (() => {
   // ══════════════════════════════════════════════════════════════
 
   let _viewerState = { zoom: 1, x: 0, y: 0, dragging: false, startX: 0, startY: 0, startPanX: 0, startPanY: 0 };
+  // Ссылка на _closeViewer текущего открытого просмотрщика — вызываем её
+  // (а не просто .remove() DOM-узла) при открытии нового, иначе слушатели
+  // window mousemove/mouseup и document keydown старого инстанса остаются
+  // висеть навсегда (а его self-cleanup в _onKey не срабатывает, т.к. проверяет
+  // по id элемента, который новый viewer тоже удовлетворяет).
+  let _closeActiveViewer = null;
 
   function _openImageViewer(dataUrl, label) {
-    // Удаляем старый если есть
-    document.getElementById('img-inline-viewer')?.remove();
+    // Закрываем старый если есть — снимает его обработчики, а не просто прячет DOM
+    _closeActiveViewer?.();
 
     const viewer = document.createElement('div');
     viewer.id = 'img-inline-viewer';
@@ -316,6 +326,7 @@ window.ImageDropModule = (() => {
     document.getElementById('iiv-zoom-orig')?.addEventListener('click', () => { _viewerState.x = 0; _viewerState.y = 0; _setZoom(1); });
 
     function _closeViewer() {
+      if (_closeActiveViewer === _closeViewer) _closeActiveViewer = null;
       window.removeEventListener('mousemove', _onMouseMove);
       window.removeEventListener('mouseup', _onMouseUp);
       document.removeEventListener('keydown', _onKey, true);
@@ -355,6 +366,8 @@ window.ImageDropModule = (() => {
         }
       }, 180);
     }
+
+    _closeActiveViewer = _closeViewer;
 
     document.getElementById('iiv-close')?.addEventListener('click', _closeViewer);
 
@@ -512,23 +525,28 @@ window.ImageDropModule = (() => {
   }
 
   // ── Извлечь URL картинки из dataTransfer ─────────────────────
+  // text/html даёт src самого <img> — надёжный сигнал, доверяем ему даже
+  // без расширения в URL (CDN часто отдают картинки без .jpg/.png).
+  // text/uri-list и text/plain — просто перетащенная ссылка (может вести
+  // на любую страницу, не только на картинку) — проверяем расширение,
+  // чтобы не пытаться открыть/вставить как изображение произвольный URL.
   function _extractImageUrl(dt) {
-    // 1. text/uri-list — прямой URL
-    if (dt.types?.includes('text/uri-list')) {
-      const raw = dt.getData('text/uri-list');
-      const url = (raw || '').split('\n').map(s => s.trim()).find(s => s && !s.startsWith('#'));
-      if (url) return url;
-    }
-    // 2. text/html — ищем src у <img>
+    // 1. text/html — ищем src у <img> (самый надёжный источник)
     if (dt.types?.includes('text/html')) {
       const html = dt.getData('text/html') || '';
       const m = html.match(/<img[^>]+src=["']([^"']+)["']/i);
       if (m) return m[1];
     }
+    // 2. text/uri-list — прямой URL
+    if (dt.types?.includes('text/uri-list')) {
+      const raw = dt.getData('text/uri-list');
+      const url = (raw || '').split('\n').map(s => s.trim()).find(s => s && !s.startsWith('#'));
+      if (url && _looksLikeImageUrl(url)) return url;
+    }
     // 3. text/plain — если это просто URL
     if (dt.types?.includes('text/plain')) {
       const txt = (dt.getData('text/plain') || '').trim();
-      if (/^https?:\/\//i.test(txt)) return txt;
+      if (/^https?:\/\//i.test(txt) && _looksLikeImageUrl(txt)) return txt;
     }
     return null;
   }
@@ -568,20 +586,28 @@ window.ImageDropModule = (() => {
   }
 
   // ── Paste из буфера обмена (глобальный) ──────────────────────
+  // Есть два независимых редактора ответа: answer-panel (#answer-panel,
+  // #ap-textarea) в дереве вопросов и панель узла в графе (#graph-node-panel,
+  // #gnp-ta) — раньше paste работал только для первого, и Ctrl+V молча
+  // игнорировался при редактировании ответа в режиме "Граф".
   function _bindPaste() {
     document.addEventListener('paste', async e => {
-      const panel = _getAnswerPanel();
-      if (!panel || panel.classList.contains('collapsed')) return;
+      const apPanel  = _getAnswerPanel();
+      const apOpen   = apPanel && !apPanel.classList.contains('collapsed');
+      const gnpPanel = document.getElementById('graph-node-panel');
+      const gnpTa    = document.getElementById('gnp-ta');
+      if (!apOpen && !gnpTa) return;
 
       const items = [...(e.clipboardData?.items || [])];
       const imgItems = items.filter(it => it.kind === 'file' && it.type.startsWith('image/'));
       if (!imgItems.length) return;
 
-      // Не перехватываем если фокус в <input> или <textarea> не наш
+      // Не перехватываем если фокус в постороннем <input>/<textarea>
       const active = document.activeElement;
-      const isOurTextarea = active?.id === 'ap-textarea';
+      const isOurTextarea = active?.id === 'ap-textarea' || active?.id === 'gnp-ta';
       const isBody = !active || active === document.body || active === document.documentElement;
-      if (!isOurTextarea && !isBody && !panel.contains(active)) return;
+      const inOurPanel = (apOpen && apPanel.contains(active)) || (gnpPanel && gnpPanel.contains(active));
+      if (!isOurTextarea && !isBody && !inOurPanel) return;
 
       e.preventDefault();
 

@@ -17,6 +17,10 @@
 window.Settings = (() => {
   'use strict';
 
+  function _escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
   const LS_KEY = 'ks_settings_v2';
 
   // ─── Дефолты ────────────────────────────────────────────────
@@ -225,7 +229,10 @@ window.Settings = (() => {
     ab.CFG.MAX_CHILDREN  = parseInt(_cfg.decomp_width,   10) || 5;
     // decomp_pool убран в v20: пул фиксирован (DS×2 + GM×2 = 4 воркера)
     ab.CFG.NODE_TIMEOUT  = Math.max((parseInt(_cfg.decomp_timeout, 10) || 300) * 1000, 300_000);
-    ab.CFG.MAX_RETRIES   = (parseInt(_cfg.decomp_retries, 10) || 1) + 2;
+    // || 1 трактовал бы валидное значение "0" ("не повторять") как не заданное —
+    // используем явную проверку на NaN, чтобы 0 сохранялся.
+    const _parsedRetries = parseInt(_cfg.decomp_retries, 10);
+    ab.CFG.MAX_RETRIES   = (Number.isNaN(_parsedRetries) ? 1 : _parsedRetries) + 2;
   }
 
   // ─── CSS ─────────────────────────────────────────────────────
@@ -951,7 +958,7 @@ window.Settings = (() => {
       row.innerHTML = `
         <div style="flex:1;min-width:0;">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
-            <span style="font-size:11px;font-weight:600;color:var(--text-primary);">${k.label || ('Ключ ' + k.id.slice(-4))}</span>
+            <span style="font-size:11px;font-weight:600;color:var(--text-primary);">${_escHtml(k.label || ('Ключ ' + k.id.slice(-4)))}</span>
             <span style="font-size:9px;padding:1px 6px;border-radius:6px;background:rgba(0,0,0,.2);color:${statusColor};border:1px solid ${statusColor}40;">${statusText}</span>
             <span style="font-size:9px;color:var(--text-muted);font-family:'DM Mono',monospace;">${k.keyMasked}</span>
           </div>
@@ -1211,6 +1218,13 @@ window.Settings = (() => {
     return result;
   }
 
+  // Excel/Sheets выполняют содержимое ячейки как формулу, если оно начинается
+  // с = + - @ (CSV formula injection) — экранируем ведущей одиночной кавычкой.
+  function _csvSafe(s) {
+    const v = String(s || '');
+    return /^[=+\-@]/.test(v) ? `'${v}` : v;
+  }
+
   // ─── Экспорт CSV ─────────────────────────────────────────────
   function _exportCSV() {
     try {
@@ -1222,8 +1236,8 @@ window.Settings = (() => {
             ? TreeHelpers.flatten(t.nodes)
             : _flattenNodes(t.nodes);
           flat.forEach(n => {
-            const ans = (n.answer || '').replace(/"/g, '""').slice(0, 100).replace(/\n/g, ' ');
-            rows.push(`"${(t.name||'').replace(/"/g,'""')}","${(n.label||'').replace(/"/g,'""')}","${n.status}","${ans}"`);
+            const ans = _csvSafe((n.answer || '').slice(0, 100).replace(/\n/g, ' ')).replace(/"/g, '""');
+            rows.push(`"${_csvSafe(t.name||'').replace(/"/g,'""')}","${_csvSafe(n.label||'').replace(/"/g,'""')}","${n.status}","${ans}"`);
           });
         });
       }

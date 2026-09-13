@@ -195,7 +195,15 @@ window.GeminiAPI = (() => {
       }
 
       const finishReason = candidate.finishReason;
-      const text = candidate.content?.parts?.map(p => p.text || '').join('').trim();
+
+      // Модель может вернуть кандидата без content вообще (например, при
+      // блокировке safety-фильтром) — в этом случае сразу явная ошибка,
+      // а не TypeError на text.length ниже.
+      if (!candidate.content?.parts?.length) {
+        throw Object.assign(new Error(`Нет content в ответе (finishReason: ${finishReason || 'unknown'})`), { isFatal: finishReason === 'SAFETY' });
+      }
+
+      const text = candidate.content.parts.map(p => p.text || '').join('').trim();
 
       // Логируем finishReason для диагностики обрезания
       if (finishReason && finishReason !== 'STOP') {

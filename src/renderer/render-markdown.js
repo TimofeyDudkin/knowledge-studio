@@ -352,6 +352,59 @@
       .replace(/"/g, '&quot;');
   }
 
+  // ── Санитизация итогового HTML — защита от XSS ───────────────
+  // Заголовки, цитаты, списки, обычные параграфы и значения href/src
+  // строятся из текста ответа ИИ (или вставленного пользователем текста)
+  // без построчного экранирования — единственная надёжная граница защиты
+  // здесь одна: перед вставкой в DOM разбираем итоговый HTML через
+  // DOMParser (там ресурсы не загружаются и скрипты не выполняются) и
+  // вычищаем опасные теги/атрибуты. Это же гасит атаки через "разрыв"
+  // атрибута (например href, обрывающий кавычку и добавляющий onerror=...)
+  // — такой onerror после парсинга становится обычным атрибутом элемента
+  // и удаляется наравне с любым другим on*-обработчиком.
+  const SANITIZE_REMOVE_TAGS = new Set(['script', 'style', 'iframe', 'object', 'embed', 'link', 'meta', 'base', 'form']);
+
+  function _isSafeUrl(value) {
+    const v = String(value || '').trim();
+    if (!v) return true;
+    if (v.startsWith('#')) return true;
+    if (/^[a-z][a-z0-9+.-]*:/i.test(v)) {
+      return /^(https?:|mailto:|tel:|data:image\/)/i.test(v);
+    }
+    return true; // относительный путь — безопасен
+  }
+
+  function _sanitizeHtml(html) {
+    let doc;
+    try {
+      doc = new DOMParser().parseFromString(html, 'text/html');
+    } catch (_) {
+      return _escHtml(html);
+    }
+
+    const toRemove = [];
+    const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_ELEMENT);
+    let node = walker.currentNode;
+    while (node) {
+      const tag = node.tagName ? node.tagName.toLowerCase() : '';
+      if (SANITIZE_REMOVE_TAGS.has(tag)) {
+        toRemove.push(node);
+      } else {
+        Array.from(node.attributes || []).forEach(attr => {
+          const name = attr.name.toLowerCase();
+          if (name.startsWith('on')) {
+            node.removeAttribute(attr.name);
+          } else if ((name === 'href' || name === 'src' || name === 'xlink:href') && !_isSafeUrl(attr.value)) {
+            node.removeAttribute(attr.name);
+          }
+        });
+      }
+      node = walker.nextNode();
+    }
+    toRemove.forEach(n => n.remove());
+    return doc.body.innerHTML;
+  }
+
   // ── Нормализация строки таблицы ──────────────────────────────
   // Убирает | по краям, делит на ячейки
   function _parseTableRow(line) {
@@ -640,13 +693,13 @@
     html = html.replace(/!\[([^\]]*)\]\((data:[^)]{20,})\)/g, (_, alt, src) => {
       const idx = _imgSrcs.length;
       _imgSrcs.push(src);
-      return `<img class="md-img" data-src-idx="${idx}" alt="${alt}" loading="lazy">`;
+      return `<img class="md-img" data-src-idx="${idx}" alt="${_escHtml(alt)}" loading="lazy">`;
     });
     // обычные URL — вставляем как раньше
     html = html.replace(/!\[([^\]]*)\]\((?!data:)([^)]+)\)/g,
-      '<img class="md-img" src="$2" alt="$1" loading="lazy">');
+      (_, alt, src) => `<img class="md-img" src="${_escHtml(src)}" alt="${_escHtml(alt)}" loading="lazy">`);
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g,
-      '<a class="md-link" href="$2" target="_blank" rel="noopener">$1</a>');
+      (_, text, href) => `<a class="md-link" href="${_escHtml(href)}" target="_blank" rel="noopener">${text}</a>`);
 
     // 12. HR
     html = html.replace(/^(---|\*\*\*|___)\s*$/gm, '<hr class="md-hr">');
@@ -669,7 +722,7 @@
     // 15. Снимаем маркер списков
     html = html.replace(/\x00LIST([\s\S]*?)LIST\x00/g, (_, inner) => inner);
 
-    return { html, imgSrcs: _imgSrcs };
+    return { html: _sanitizeHtml(html), imgSrcs: _imgSrcs };
   }
 
   // ── CSS для формул и улучшенных таблиц ──────────────────────

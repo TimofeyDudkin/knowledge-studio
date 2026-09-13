@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // File dialog
   openFile: ()             => ipcRenderer.invoke('dialog:openFile'),
+  saveFile: (opts)         => ipcRenderer.invoke('shell:saveFile', opts),
 
   // Clipboard
   readClipboard: ()              => ipcRenderer.invoke('clipboard:read'),

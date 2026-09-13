@@ -869,6 +869,10 @@ window.FilesModule = (() => {
       _pdfInstances[file.id] = pdfDoc;
       if (!_currentPage[file.id]) _currentPage[file.id] = 1;
 
+      // Пользователь мог переключиться на другой файл, пока PDF грузился —
+      // не трогаем DOM текущего (уже другого) вьюера чужими данными.
+      if (file.id !== _activeFileId) return;
+
       // Обновить total pages если viewer ещё показан
       const $total = document.getElementById('pdf-total');
       if ($total) $total.textContent = pdfDoc.numPages;
@@ -918,6 +922,10 @@ window.FilesModule = (() => {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       await page.render({ canvasContext: ctx, viewport }).promise;
+
+      // Пока страница рендерилась, могли открыть другой файл — тогда
+      // #pdf-canvas уже принадлежит другому вьюеру, не дорисовываем поверх.
+      if (file.id !== _activeFileId) return;
 
       if ($loading) $loading.style.display = 'none';
       // Скрыть блок ошибки если он был показан ранее

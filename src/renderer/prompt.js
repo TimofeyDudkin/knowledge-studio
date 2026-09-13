@@ -6,13 +6,17 @@
 
 window.PromptModule = (() => {
 
+  function _escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
   function renderTemplateChips() {
     const $container = document.getElementById('prompt-templates');
     if (!$container) return;
 
     const templates = AppState.get('promptTemplates');
     $container.innerHTML = templates.map(t => `
-      <button class="template-chip" data-template-id="${t.id}">${t.label}</button>
+      <button class="template-chip" data-template-id="${_escHtml(t.id)}">${_escHtml(t.label)}</button>
     `).join('');
 
     $container.querySelectorAll('.template-chip').forEach(btn => {

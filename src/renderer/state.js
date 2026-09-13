@@ -65,9 +65,11 @@ window.AppState = (() => {
 
   function set(key, value) {
     _state[key] = value;
-    _notify(key, value);
-    // При смене темы — пересобираем индекс
+    // При смене темы — пересобираем индекс ДО уведомления подписчиков,
+    // иначе слушатель currentTopicId, вызывающий findNode() синхронно
+    // внутри своего колбэка, увидит индекс от предыдущей темы.
     if (key === 'currentTopicId') _rebuildIndex();
+    _notify(key, value);
     if (!_restoring && !_TRANSIENT_KEYS.has(key)) _scheduleSave();
   }
 

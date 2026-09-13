@@ -804,6 +804,41 @@ window.AnswerPanel = (() => {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  // Защита от XSS перед вставкой в innerHTML (см. render-markdown.js _sanitizeHtml —
+  // тот же подход, продублирован здесь на случай, если renderMarkdown() выше
+  // отработает как локальный fallback, а не через патч из render-markdown.js).
+  const _SANITIZE_REMOVE_TAGS = new Set(['script', 'style', 'iframe', 'object', 'embed', 'link', 'meta', 'base', 'form']);
+  function _isSafeUrl(value) {
+    const v = String(value || '').trim();
+    if (!v) return true;
+    if (v.startsWith('#')) return true;
+    if (/^[a-z][a-z0-9+.-]*:/i.test(v)) return /^(https?:|mailto:|tel:|data:image\/)/i.test(v);
+    return true;
+  }
+  function _sanitizeHtml(html) {
+    let doc;
+    try { doc = new DOMParser().parseFromString(html, 'text/html'); }
+    catch (_) { return escHtml(html); }
+    const toRemove = [];
+    const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_ELEMENT);
+    let node = walker.currentNode;
+    while (node) {
+      const tag = node.tagName ? node.tagName.toLowerCase() : '';
+      if (_SANITIZE_REMOVE_TAGS.has(tag)) {
+        toRemove.push(node);
+      } else {
+        Array.from(node.attributes || []).forEach(attr => {
+          const name = attr.name.toLowerCase();
+          if (name.startsWith('on')) node.removeAttribute(attr.name);
+          else if ((name === 'href' || name === 'src' || name === 'xlink:href') && !_isSafeUrl(attr.value)) node.removeAttribute(attr.name);
+        });
+      }
+      node = walker.nextNode();
+    }
+    toRemove.forEach(n => n.remove());
+    return doc.body.innerHTML;
+  }
+
   function _mathRender(tex, display) {
     const t = tex.replace(/\\\\/g, '\\');
     if (typeof window.katex !== 'undefined') {
@@ -940,9 +975,9 @@ window.AnswerPanel = (() => {
     const result = renderMarkdown(md);
     // renderMarkdown может вернуть строку (из патча render-markdown.js) или объект
     if (typeof result === 'string') {
-      container.innerHTML = result;
+      container.innerHTML = _sanitizeHtml(result);
     } else {
-      container.innerHTML = result.html;
+      container.innerHTML = _sanitizeHtml(result.html);
       if (result.imgSrcs && result.imgSrcs.length) {
         container.querySelectorAll('img[data-src-idx]').forEach(img => {
           const idx = parseInt(img.dataset.srcIdx, 10);

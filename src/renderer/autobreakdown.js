@@ -57,10 +57,21 @@
   const dbg = (...a) => console.log('[AB v35]', ...a);
 
   // ── Семафор: не более N параллельных HTTP-запросов к Gemini API ─────────────
+  // Важно: слот (_running++) захватывается СИНХРОННО в момент, когда waiter
+  // реально забирается из очереди — иначе несколько waiter'ов могут пройти
+  // проверку `_running < _max` за один и тот же синхронный проход _flush(),
+  // до того как асинхронный .then() успеет увеличить _running (race condition,
+  // сводившая на нет весь смысл семафора).
   const _apiSem = (() => {
     let _max = 2, _running = 0;
     const _q = [];
-    const _flush = () => { while (_running < _max && _q.length) { _q.shift()(null); } };
+    const _release = () => { _running = Math.max(0, _running - 1); _flush(); };
+    const _flush = () => {
+      while (_running < _max && _q.length) {
+        _running++;
+        _q.shift()(null);
+      }
+    };
     return {
       setMax(n) { _max = n; _flush(); },
       acquire(cancelCheck) {
@@ -68,15 +79,13 @@
         return new Promise((res, rej) => {
           _q.push(err => err ? rej(err) : res());
         }).then(() => {
-          if (cancelCheck?.()) throw new Error('Отменено');
-          _running++;
+          if (cancelCheck?.()) { _release(); throw new Error('Отменено'); }
         });
       },
-      release() { _running = Math.max(0, _running - 1); _flush(); },
+      release: _release,
       abortAll() {
         const e = new Error('Отменено');
         while (_q.length) _q.shift()(e);
-        _running = 0;
       },
     };
   })();
@@ -278,14 +287,25 @@ ${siblingsBlock}Сформулируй ровно ${n} научных подво
 
   /**
    * Убирает из ответа AI случайно попавший в него промпт.
-   * Если текст содержит "## Суть" — берём всё начиная с этого заголовка.
-   * Иначе возвращаем текст как есть.
+   * Ищем самый ранний из канонических заголовков ответа (см. pAnswer ниже)
+   * и берём текст начиная с него — так эхо промпта отрезается, даже если
+   * модель пропустила первый раздел (он не всегда применим к вопросу).
    */
+  const ANSWER_SECTION_HEADINGS = [
+    '## Определение и общая характеристика',
+    '## Строение и состав',
+    '## Механизм и физиология',
+    '## Функции и значение',
+    '## Клиническое и прикладное значение',
+    '## Ключевые термины',
+  ];
   function _stripPromptEcho(text) {
-    const marker = '## Суть';
-    const idx = text.indexOf(marker);
-    if (idx > 0) return text.slice(idx);
-    return text;
+    let bestIdx = -1;
+    for (const marker of ANSWER_SECTION_HEADINGS) {
+      const idx = text.indexOf(marker);
+      if (idx > 0 && (bestIdx === -1 || idx < bestIdx)) bestIdx = idx;
+    }
+    return bestIdx > 0 ? text.slice(bestIdx) : text;
   }
 
   // v35: научный промпт уровня учебника/лекции
@@ -1445,6 +1465,7 @@ ${siblingsBlock}Сформулируй ровно ${n} научных подво
 
     // ── Webview режим (старый путь DS+GM) ──
     let recoveryCount = 0;
+    let authRetryCount = 0;
     for (let attempt = 1; attempt <= CFG.MAX_RETRIES; attempt++) {
       if (cancel?.v || RUN.cancelled) throw new Error('Отменено');
       let entry = null;
@@ -1462,6 +1483,11 @@ ${siblingsBlock}Сформулируй ровно ${n} научных подво
           else await navGemini(entry.wv);
         } catch (navErr) {
           if (navErr instanceof AuthError) {
+            authRetryCount++;
+            if (authRetryCount > CFG.MAX_RECOVERY) {
+              dbg(`askAny: ${tag} AuthError повторился ${authRetryCount} раз подряд — прекращаем`);
+              throw new Error(`Не удалось авторизоваться в ${navErr.provider} после ${authRetryCount} попыток`);
+            }
             dbg(`askAny: ${tag} AuthError → диалог авторизации`);
             releaseWorker(entry); entry = null;
 

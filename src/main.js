@@ -386,6 +386,12 @@ ipcMain.handle('pptx:cleanupTmp', (_e, pdfPath) => {
 ipcMain.handle('image:fetchUrl', (_e, url) => {
   return new Promise((resolve, reject) => {
     try {
+      let parsed;
+      try { parsed = new URL(url); } catch { return reject(new Error('Invalid URL')); }
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        return reject(new Error('Unsupported protocol: ' + parsed.protocol));
+      }
+
       const request = net.request({
         url,
         method: 'GET',
@@ -444,9 +450,19 @@ ipcMain.handle('image:fetchUrl', (_e, url) => {
 //  Используем electron.net.request (не node fetch) для надёжности.
 // ══════════════════════════════════════════════════════════════
 
+// Main-процесс не должен превращаться в открытый прокси на произвольный хост —
+// разрешаем запросы только к самому Gemini API.
+const GEMINI_ALLOWED_HOST = 'generativelanguage.googleapis.com';
+
 ipcMain.handle('gemini:request', (_e, { url, body }) => {
   return new Promise((resolve, reject) => {
     try {
+      let parsed;
+      try { parsed = new URL(url); } catch { return reject(new Error('Invalid URL')); }
+      if (parsed.protocol !== 'https:' || parsed.hostname !== GEMINI_ALLOWED_HOST) {
+        return reject(new Error('Host not allowed: ' + parsed.hostname));
+      }
+
       console.log('[gemini:request] url:', url.slice(0, 80));
 
       const request = net.request({

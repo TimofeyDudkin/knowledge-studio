@@ -1,0 +1,834 @@
+/* ═══════════════════════════════════════════════════════════════
+   design-overrides.css — Electric Youth Design Layer
+   Накладывается поверх main.css, усиливает визуальный характер:
+   градиенты, свечение, glassmorphism, живые цвета
+   ════════════════════════════════════════════════════════════ */
+
+/* ══ 1. ICON RAIL — живой, с акцентным светом ══════════════════ */
+
+#icon-rail {
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border-subtle);
+}
+
+.rail-logo svg {
+  filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.5));
+}
+
+.rail-btn {
+  border-radius: 10px;
+  transition: background 0.15s, color 0.15s, box-shadow 0.2s, transform 0.15s;
+}
+.rail-btn:hover {
+  background: rgba(167, 139, 250, 0.12);
+  color: #a78bfa;
+  box-shadow: 0 0 12px rgba(167, 139, 250, 0.2);
+  transform: translateY(-1px);
+}
+.rail-btn.active {
+  background: rgba(167, 139, 250, 0.18);
+  color: #a78bfa;
+  box-shadow: 0 0 16px rgba(167, 139, 250, 0.28), inset 0 0 0 1px rgba(167, 139, 250, 0.2);
+}
+
+/* ══ 2. TITLEBAR — тонкая индиго-полоска снизу ═════════════════ */
+
+#titlebar {
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border-subtle);
+}
+#titlebar-title {
+  background: linear-gradient(90deg, var(--text-secondary) 0%, var(--accent) 50%, #818cf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+/* ══ 3. TOPBAR — gradient bottom border ═══════════════════════════ */
+
+#topbar {
+  background: var(--bg-base);
+  border-bottom: 1px solid transparent;
+  background-clip: padding-box;
+  position: relative;
+}
+#topbar::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(167, 139, 250, 0.25) 20%,
+    rgba(129, 140, 248, 0.4) 50%,
+    rgba(167, 139, 250, 0.25) 80%,
+    transparent 100%
+  );
+}
+
+/* ══ 4. MODE TABS — pill с градиентом ══════════════════════════════ */
+
+#mode-tabs {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(167, 139, 250, 0.1);
+  border-radius: 12px;
+  padding: 3px;
+  gap: 2px;
+}
+.mode-tab {
+  border-radius: 9px;
+  font-weight: 500;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: 0.01em;
+}
+.mode-tab:hover:not(.active) {
+  color: #a78bfa;
+  background: rgba(167, 139, 250, 0.08);
+}
+.mode-tab.active {
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.22) 0%, rgba(129, 140, 248, 0.16) 100%);
+  color: #c4b5fd;
+  box-shadow:
+    0 0 0 1px rgba(167, 139, 250, 0.3),
+    0 2px 8px rgba(167, 139, 250, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+[data-theme="light"] .mode-tab.active {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.14) 0%, rgba(79, 70, 229, 0.1) 100%);
+  color: #7c3aed;
+  box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.28), 0 2px 8px rgba(124, 58, 237, 0.1);
+}
+
+/* ══ 5. TOPBAR ICON BUTTONS ════════════════════════════════════════ */
+
+.icon-btn {
+  border-radius: 8px;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.icon-btn:hover {
+  background: rgba(167, 139, 250, 0.1);
+  color: #a78bfa;
+  box-shadow: 0 0 10px rgba(167, 139, 250, 0.15);
+}
+.icon-btn.active {
+  background: rgba(167, 139, 250, 0.18);
+  color: #c4b5fd;
+  box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.28);
+}
+
+/* ══ 6. PRIMARY BUTTON — gradient electric ══════════════════════════ */
+
+.btn-primary {
+  background: linear-gradient(135deg, #a78bfa 0%, #818cf8 100%);
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(167, 139, 250, 0.35), 0 1px 3px rgba(0, 0, 0, 0.2);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.btn-primary:hover::before { opacity: 1; }
+.btn-primary:hover {
+  box-shadow: 0 6px 24px rgba(167, 139, 250, 0.5), 0 2px 6px rgba(0, 0, 0, 0.25);
+  transform: translateY(-1px);
+}
+.btn-primary:active { transform: translateY(0); box-shadow: 0 2px 8px rgba(167, 139, 250, 0.3); }
+
+[data-theme="light"] .btn-primary {
+  background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3);
+}
+
+/* ══ 7. SECONDARY BUTTON ════════════════════════════════════════════ */
+
+.btn-secondary {
+  background: rgba(167, 139, 250, 0.05);
+  border: 1px solid rgba(167, 139, 250, 0.18);
+  border-radius: 10px;
+  color: #9494c8;
+  transition: all 0.15s;
+}
+.btn-secondary:hover {
+  background: rgba(167, 139, 250, 0.1);
+  border-color: rgba(167, 139, 250, 0.35);
+  color: #c4b5fd;
+}
+[data-theme="light"] .btn-secondary {
+  background: rgba(124, 58, 237, 0.04);
+  border-color: rgba(124, 58, 237, 0.2);
+  color: #4a4a78;
+}
+[data-theme="light"] .btn-secondary:hover {
+  background: rgba(124, 58, 237, 0.08);
+  border-color: rgba(124, 58, 237, 0.4);
+  color: #7c3aed;
+}
+
+/* ══ 8. SIDEBAR — glassmorphism flyout ══════════════════════════════ */
+
+#sidebar {
+  background: var(--bg-sidebar);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid var(--border-subtle);
+}
+#sidebar.sidebar-open {
+  box-shadow: 8px 0 40px rgba(0, 0, 0, 0.35), 2px 0 0 var(--accent-muted);
+}
+
+#sidebar-header {
+  border-bottom: 1px solid rgba(167, 139, 250, 0.08);
+}
+
+.logo-text em {
+  background: linear-gradient(135deg, #a78bfa, #818cf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.btn-new {
+  background: rgba(167, 139, 250, 0.05);
+  border: 1px dashed rgba(167, 139, 250, 0.2);
+  border-radius: 10px;
+  transition: all 0.15s;
+}
+.btn-new:hover {
+  background: rgba(167, 139, 250, 0.1);
+  border-color: rgba(167, 139, 250, 0.5);
+  color: #c4b5fd;
+}
+
+/* Topic item active — gradient left border */
+.topic-item.active {
+  background: rgba(167, 139, 250, 0.1);
+  border-left: 2px solid transparent;
+  background-clip: padding-box;
+  position: relative;
+}
+.topic-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 20%; bottom: 20%;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #a78bfa, #818cf8);
+}
+.topic-item .topic-dot {
+  background: linear-gradient(135deg, #a78bfa, #818cf8);
+  box-shadow: 0 0 6px rgba(167, 139, 250, 0.5);
+}
+
+/* ══ 9. TREE PANEL ══════════════════════════════════════════════════ */
+
+.tree-header {
+  background: var(--bg-base);
+}
+.tree-topic-title {
+  background: linear-gradient(90deg, #f0efff 0%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+[data-theme="light"] .tree-topic-title {
+  background: linear-gradient(90deg, #0e0e24 0%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Tree node hover/selected — glow accent */
+.tree-node-row {
+  border-radius: 9px;
+  transition: background 0.12s, box-shadow 0.15s;
+}
+.tree-node-row:hover {
+  background: rgba(167, 139, 250, 0.07);
+}
+.tree-node-row.selected {
+  background: rgba(167, 139, 250, 0.13);
+  box-shadow: inset 0 0 0 1px rgba(167, 139, 250, 0.2);
+}
+
+/* Status dots — glowing */
+.tree-node-status.open   { background: #3a3a58; box-shadow: none; }
+.tree-node-status.active {
+  background: #fbbf24;
+  box-shadow: 0 0 6px rgba(251, 191, 36, 0.6);
+}
+.tree-node-status.done {
+  background: #34d399;
+  box-shadow: 0 0 6px rgba(52, 211, 153, 0.6);
+}
+
+/* Children line — gradient */
+.tree-node-children {
+  border-left: 1px solid rgba(167, 139, 250, 0.12);
+}
+
+/* ══ 10. ANSWER PANEL HEADER ════════════════════════════════════════ */
+
+#answer-panel-header {
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.ap-panel-title {
+  background: linear-gradient(90deg, #9494c8 0%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ══ 11. STATUS PILLS ════════════════════════════════════════════════ */
+
+.ap-status-pill.status-open {
+  background: rgba(58, 58, 88, 0.4);
+  color: #9494c8;
+  border: 1px solid rgba(58, 58, 88, 0.6);
+}
+.ap-status-pill.status-active {
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.15);
+}
+.ap-status-pill.status-done {
+  background: rgba(52, 211, 153, 0.1);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.25);
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.15);
+}
+
+/* ══ 12. FORMAT TOOLBAR ═════════════════════════════════════════════ */
+
+.ap-fmt-toolbar {
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.ap-fmt-btn:hover {
+  background: rgba(167, 139, 250, 0.1);
+  color: #c4b5fd;
+}
+.ap-fmt-btn.active {
+  background: rgba(167, 139, 250, 0.15);
+  color: #a78bfa;
+  box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.25);
+}
+
+/* ══ 13. FORM INPUTS — neon glow on focus ═══════════════════════════ */
+
+.field-input, .field-textarea {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(167, 139, 250, 0.15);
+  border-radius: 10px;
+  color: #f0efff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.field-input:focus, .field-textarea:focus {
+  border-color: rgba(167, 139, 250, 0.6);
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.12), 0 0 16px rgba(167, 139, 250, 0.1);
+}
+[data-theme="light"] .field-input,
+[data-theme="light"] .field-textarea {
+  background: rgba(124, 58, 237, 0.02);
+  border-color: rgba(124, 58, 237, 0.2);
+  color: #0e0e24;
+}
+[data-theme="light"] .field-input:focus,
+[data-theme="light"] .field-textarea:focus {
+  border-color: rgba(124, 58, 237, 0.55);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+/* ══ 14. MODAL — glassmorphism card ═════════════════════════════════ */
+
+.modal-overlay {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12px);
+}
+.modal {
+  background: var(--bg-modal);
+  border: 1px solid var(--border-default);
+  border-radius: 18px;
+  box-shadow:
+    0 32px 80px rgba(0, 0, 0, 0.4),
+    0 0 0 1px var(--accent-muted);
+  backdrop-filter: blur(20px);
+}
+.modal-header {
+  border-bottom: 1px solid rgba(167, 139, 250, 0.08);
+  padding: 22px 24px 18px;
+}
+.modal-header h2 {
+  background: linear-gradient(90deg, #f0efff 0%, #c4b5fd 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-style: normal;
+  font-family: "DM Sans", sans-serif;
+  font-weight: 700;
+}
+.modal-footer {
+  border-top: 1px solid rgba(167, 139, 250, 0.08);
+}
+[data-theme="light"] .modal {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(124, 58, 237, 0.18);
+  box-shadow: 0 24px 60px rgba(124, 58, 237, 0.12), 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+[data-theme="light"] .modal-header h2 {
+  background: linear-gradient(90deg, #0e0e24 0%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ══ 15. CONTEXT MENU — glass card ══════════════════════════════════ */
+
+.ctx-menu {
+  background: var(--bg-modal);
+  border: 1px solid var(--border-default);
+  border-radius: 14px;
+  backdrop-filter: blur(20px);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.35),
+    0 0 0 1px var(--accent-muted);
+}
+.ctx-menu-item:hover {
+  background: rgba(167, 139, 250, 0.1);
+  color: #c4b5fd;
+}
+.ctx-menu-sep { background: rgba(167, 139, 250, 0.1); }
+
+/* ══ 16. TOAST — sleek notification ═════════════════════════════════ */
+
+.toast {
+  background: var(--bg-modal);
+  border: 1px solid var(--border-default);
+  border-radius: 16px;
+  backdrop-filter: blur(20px);
+  box-shadow:
+    0 16px 50px rgba(0, 0, 0, 0.4),
+    0 0 0 1px var(--accent-muted);
+}
+.toast-btn-yes {
+  background: linear-gradient(135deg, #a78bfa 0%, #818cf8 100%);
+  border-radius: 9px;
+  box-shadow: 0 3px 12px rgba(167, 139, 250, 0.3);
+  font-weight: 600;
+}
+.toast-btn-yes:hover { opacity: 0.88; box-shadow: 0 5px 18px rgba(167, 139, 250, 0.45); }
+
+/* ══ 17. BREADCRUMB ══════════════════════════════════════════════════ */
+
+#topic-breadcrumb {
+  font-size: 13px;
+  color: #6868a0;
+  font-weight: 500;
+}
+
+/* ══ 18. BROWSER PANEL ═══════════════════════════════════════════════ */
+
+#browser-panel {
+  background: var(--bg-sidebar);
+  border-left: 1px solid var(--border-subtle);
+}
+.browser-tab.active {
+  background: rgba(167, 139, 250, 0.1);
+  color: #c4b5fd;
+  border-color: rgba(167, 139, 250, 0.2);
+  border-bottom-color: transparent;
+}
+#browser-url {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(167, 139, 250, 0.12);
+  border-radius: 8px;
+  color: #9494c8;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+#browser-url:focus {
+  border-color: rgba(167, 139, 250, 0.5);
+  box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.1);
+  color: #f0efff;
+}
+#btn-send-question {
+  background: rgba(167, 139, 250, 0.08);
+  border: 1px solid rgba(167, 139, 250, 0.2);
+  border-radius: 8px;
+  color: #a78bfa;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+#btn-send-question:hover {
+  background: rgba(167, 139, 250, 0.15);
+  border-color: rgba(167, 139, 250, 0.45);
+  color: #c4b5fd;
+  box-shadow: 0 0 14px rgba(167, 139, 250, 0.2);
+}
+
+/* ══ 19. RESIZE HANDLES — colored accent ════════════════════════════ */
+
+.resize-handle:hover,
+.resize-handle.dragging {
+  background: linear-gradient(180deg, transparent, rgba(167, 139, 250, 0.5), transparent);
+}
+
+/* ══ 20. ANSWER PANEL — question title gradient ════════════════════ */
+
+.ap-question-title {
+  background: linear-gradient(120deg, #f0efff 0%, #c4b5fd 60%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-style: normal;
+  font-family: "DM Sans", sans-serif;
+  font-weight: 700;
+  font-size: 19px;
+  letter-spacing: -0.02em;
+}
+[data-theme="light"] .ap-question-title {
+  background: linear-gradient(120deg, #0e0e24 0%, #4a4a78 50%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ══ 21. EMPTY STATE ════════════════════════════════════════════════ */
+
+.empty-state h3 {
+  background: linear-gradient(90deg, #f0efff 0%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-style: normal;
+  font-family: "DM Sans", sans-serif;
+  font-weight: 700;
+}
+.empty-icon {
+  color: rgba(167, 139, 250, 0.3);
+  filter: drop-shadow(0 0 16px rgba(167, 139, 250, 0.2));
+}
+
+/* ══ 22. TEMPLATE CHIPS ═════════════════════════════════════════════ */
+
+.template-chip {
+  background: rgba(167, 139, 250, 0.05);
+  border: 1px solid rgba(167, 139, 250, 0.15);
+  border-radius: 20px;
+  color: #9494c8;
+  transition: all 0.15s;
+}
+.template-chip:hover {
+  background: rgba(167, 139, 250, 0.12);
+  border-color: rgba(167, 139, 250, 0.45);
+  color: #c4b5fd;
+  box-shadow: 0 0 12px rgba(167, 139, 250, 0.15);
+}
+
+/* ══ 23. INLINE EDIT INPUT ══════════════════════════════════════════ */
+
+.inline-edit-input {
+  background: rgba(167, 139, 250, 0.06);
+  border: 1px solid rgba(167, 139, 250, 0.5);
+  border-radius: 7px;
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.1), 0 0 20px rgba(167, 139, 250, 0.12);
+  color: #f0efff;
+}
+
+/* ══ 24. PROGRESS BAR — gradient ════════════════════════════════════ */
+
+.ap-progress-fill {
+  background: linear-gradient(90deg, #34d399 0%, #10b981 100%);
+  box-shadow: 0 0 6px rgba(52, 211, 153, 0.4);
+}
+
+/* ══ 25. SCROLLBARS — accent tinted ════════════════════════════════ */
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(167, 139, 250, 0.18);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(167, 139, 250, 0.35);
+}
+
+/* ══ 26. SELECTION ══════════════════════════════════════════════════ */
+
+::selection {
+  background: rgba(167, 139, 250, 0.25);
+  color: #f0efff;
+}
+
+/* ══ 27. TOPIC LIST — gradient active dot ══════════════════════════ */
+
+.topic-item:hover {
+  background: rgba(167, 139, 250, 0.06);
+  color: #c4b5fd;
+}
+
+/* ══ 28. ANSWER NAV BUTTONS ═════════════════════════════════════════ */
+
+.ap-nav-btn {
+  background: rgba(167, 139, 250, 0.05);
+  border: 1px solid rgba(167, 139, 250, 0.15);
+  border-radius: 10px;
+  color: #7070a0;
+  transition: all 0.15s;
+}
+.ap-nav-btn:hover:not(:disabled) {
+  background: rgba(167, 139, 250, 0.12);
+  border-color: rgba(167, 139, 250, 0.4);
+  color: #c4b5fd;
+  box-shadow: 0 0 12px rgba(167, 139, 250, 0.15);
+}
+
+/* ══ 29. CODE BLOCK — better header ════════════════════════════════ */
+
+.ap-answer-body .md-code-block {
+  border-color: rgba(167, 139, 250, 0.15);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(167, 139, 250, 0.06);
+}
+.ap-answer-body .md-code-header {
+  background: rgba(12, 12, 24, 0.9);
+}
+.ap-answer-body .code-lang {
+  background: rgba(167, 139, 250, 0.1);
+  color: #a78bfa;
+}
+
+/* ══ 30. DRAG & DROP ════════════════════════════════════════════════ */
+
+.tree-node.drop-inside > .tree-node-row {
+  background: rgba(167, 139, 250, 0.12);
+  outline: 1px solid rgba(167, 139, 250, 0.4);
+  box-shadow: 0 0 12px rgba(167, 139, 250, 0.2);
+}
+.tree-node.drop-before > .tree-node-row::before,
+.tree-node.drop-after > .tree-node-row::after {
+  background: linear-gradient(90deg, #a78bfa, #818cf8);
+  box-shadow: 0 0 6px rgba(167, 139, 250, 0.5);
+}
+
+/* ══ 31. AUTO-BREAKDOWN BUTTON ══════════════════════════════════════ */
+
+#btn-auto-breakdown.running {
+  color: #a78bfa;
+  filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.5));
+}
+
+/* ══ 32. SEPARATOR LINE ═════════════════════════════════════════════ */
+
+.rail-divider {
+  background: rgba(167, 139, 250, 0.1);
+  width: 20px;
+}
+
+/* ══ 33. SETTINGS PANEL ══════════════════════════════════════════════ */
+
+.stt-modal {
+  background: var(--bg-modal);
+  border: 1px solid var(--border-default);
+  border-radius: 20px;
+  box-shadow:
+    0 40px 100px rgba(0, 0, 0, 0.5),
+    0 0 0 1px var(--accent-muted);
+  backdrop-filter: blur(24px);
+}
+.stt-sidebar {
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border-subtle);
+}
+.stt-nav-item.active {
+  background: rgba(167, 139, 250, 0.12);
+  color: #c4b5fd;
+  border-left-color: #a78bfa;
+  box-shadow: inset 0 0 0 1px rgba(167, 139, 250, 0.12);
+}
+.stt-toggle.stt-on {
+  background: linear-gradient(135deg, #a78bfa, #818cf8);
+  box-shadow: 0 0 10px rgba(167, 139, 250, 0.3);
+}
+.stt-chip.stt-on {
+  border-color: rgba(167, 139, 250, 0.5);
+  color: #c4b5fd;
+  background: rgba(167, 139, 250, 0.12);
+  box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.2);
+}
+.stt-btn-primary {
+  background: linear-gradient(135deg, #a78bfa, #818cf8);
+  border: none;
+  box-shadow: 0 4px 14px rgba(167, 139, 250, 0.3);
+  font-weight: 600;
+}
+.stt-btn-primary:hover {
+  box-shadow: 0 6px 20px rgba(167, 139, 250, 0.45);
+  transform: translateY(-1px);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SMOOTH INTERACTIONS — плавные переходы и микроанимации
+   ════════════════════════════════════════════════════════════ */
+
+/* ── Sidebar flyout — spring easing ─────────────────────────── */
+#sidebar {
+  transition:
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.25s ease;
+}
+
+/* ── Sidebar overlay — плавное fade-in/out ──────────────────── */
+/* Убираем display:none, используем opacity + visibility */
+#sidebar-overlay {
+  display: block !important;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.22s ease, visibility 0s linear 0.22s;
+}
+#sidebar-overlay.visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 0.22s ease, visibility 0s linear 0s;
+}
+
+/* ── Content panels — fade-up при активации ─────────────────── */
+.content-panel.active {
+  animation: ks-panel-in 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes ks-panel-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+/* ── Answer panel view/edit — fade-up при каждом открытии ───── */
+.ap-view {
+  animation: ks-fade-up 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.ap-edit {
+  animation: ks-fade-up 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes ks-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+/* ── Modal — spring enter ────────────────────────────────────── */
+.modal {
+  animation: ks-modal-spring 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes ks-modal-spring {
+  from { opacity: 0; transform: translateY(18px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);   }
+}
+.modal-overlay {
+  animation: ks-overlay-bg 0.2s ease both;
+}
+@keyframes ks-overlay-bg {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Context menu — spring pop ───────────────────────────────── */
+.ctx-menu {
+  animation: ks-ctx-pop 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: top left;
+}
+@keyframes ks-ctx-pop {
+  from { opacity: 0; transform: scale(0.91) translateY(-6px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);    }
+}
+
+/* ── Tree toggle arrow — spring bounce ───────────────────────── */
+.tree-node-toggle {
+  transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Mode tabs — spring easing ───────────────────────────────── */
+.mode-tab {
+  transition: all 0.22s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+/* ── Tree children — fade-in при раскрытии (@starting-style) ── */
+.tree-node-children {
+  transition: opacity 0.18s ease;
+}
+@starting-style {
+  .tree-node-children { opacity: 0; }
+}
+
+/* ── New node placeholder — появление ───────────────────────── */
+.tree-node-new-placeholder {
+  animation: ks-fade-up 0.16s ease both;
+}
+
+/* ── Scroll — плавная прокрутка в основных контейнерах ─────── */
+#tree-container,
+#topics-list {
+  scroll-behavior: smooth;
+}
+
+/* ── Button press — тактильный отклик при нажатии ────────────── */
+.btn-primary:active {
+  transform: scale(0.97) translateY(1px);
+  box-shadow: 0 2px 8px rgba(167, 139, 250, 0.25);
+}
+.btn-secondary:active {
+  transform: scale(0.97);
+}
+.icon-btn:active,
+.icon-btn-sm:active {
+  transform: scale(0.86);
+}
+.rail-btn:active {
+  transform: scale(0.85) translateY(0);
+}
+.ap-nav-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+.ap-status-pill:active {
+  transform: scale(0.92);
+}
+.ap-fmt-btn:active {
+  transform: scale(0.88);
+}
+.template-chip:active {
+  transform: scale(0.94);
+}
+.mode-tab:active:not(.active) {
+  transform: scale(0.95);
+}
+.browser-tab:active {
+  transform: scale(0.97);
+}
+.ap-history-restore:active {
+  transform: scale(0.94);
+}
+
+/* ── Topic item hover — чуть плавнее ────────────────────────── */
+.topic-item {
+  transition: background 0.13s ease, color 0.13s ease;
+}
+
+/* ── Tree node row — плавнее hover/select ────────────────────── */
+.tree-node-row {
+  transition: background 0.13s ease, box-shadow 0.15s ease;
+}
+
+/* ── Resize handle — плавный акцент ─────────────────────────── */
+.resize-handle {
+  transition: background 0.18s ease;
+}

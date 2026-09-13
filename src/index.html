@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' blob:; script-src 'self' https://cdnjs.cloudflare.com; worker-src blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: file:; frame-src https:; connect-src 'self' blob: file: https://generativelanguage.googleapis.com;"
+    />
+    <title>Knowledge Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,600&display=swap"
+    />
+    <link rel="stylesheet" href="styles/main.css" />
+    <link rel="stylesheet" href="styles/themes.css" />
+    <link rel="stylesheet" href="styles/answer-styles.css" />
+    <link rel="stylesheet" href="styles/graph.css" />
+    <link rel="stylesheet" href="styles/settings.css" />
+    <link rel="stylesheet" href="styles/files.css" />
+    <link rel="stylesheet" href="styles/markdown.css" />
+    <link rel="stylesheet" href="styles/image-drop.css" />
+    <link rel="stylesheet" href="styles/design-overrides.css" />
+    <!-- highlight.js для подсветки синтаксиса кода -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" id="hljs-theme-dark">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css" id="hljs-theme-light" disabled>
+    <!-- KaTeX для рендеринга математических формул -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css" crossorigin="anonymous">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+  </head>
+  <body data-theme="dark">
+    <!-- ═══════════════════════════════════════════════════════════
+       TITLEBAR — только для macOS (hiddenInset)
+  ════════════════════════════════════════════════════════════ -->
+    <div id="titlebar">
+      <div id="titlebar-drag"></div>
+      <span id="titlebar-title">Knowledge Studio</span>
+      <div id="titlebar-actions">
+        <button class="tb-btn" id="btn-theme" title="Переключить тему">
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <circle cx="8" cy="8" r="3.5" />
+            <path
+              d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.2 3.2l1.06 1.06M11.74 11.74l1.06 1.06M3.2 12.8l1.06-1.06M11.74 4.26l1.06-1.06"
+            />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+       APP SHELL
+  ════════════════════════════════════════════════════════════ -->
+    <div id="app">
+      <!-- ── ICON RAIL (всегда видима, 44px) ── -->
+      <div id="icon-rail">
+        <div id="rail-top">
+          <!-- Логотип / toggle sidebar -->
+          <button
+            class="rail-btn rail-logo"
+            id="rail-toggle-sidebar"
+            title="Темы (Cmd+/)"
+          >
+            <svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="M12 3L3 7.5V16.5L12 21L21 16.5V7.5L12 3Z"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M12 3V21M3 7.5L12 12L21 7.5"
+                stroke="currentColor"
+                stroke-width="1"
+                stroke-linejoin="round"
+                opacity="0.45"
+              />
+            </svg>
+          </button>
+
+          <div class="rail-divider"></div>
+
+          <!-- Новая тема -->
+          <button
+            class="rail-btn"
+            id="rail-new-topic"
+            title="Новая тема (Cmd+N)"
+          >
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path d="M8 3v10M3 8h10" stroke-linecap="round" />
+            </svg>
+          </button>
+        </div>
+
+        <div id="rail-bottom">
+          <button class="rail-btn" id="nav-settings" title="Настройки">
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <circle cx="8" cy="8" r="2.5" />
+              <path
+                d="M8 1.5v1M8 13.5v1M1.5 8h1M13.5 8h1M3.4 3.4l.7.7M11.9 11.9l.7.7M3.4 12.6l.7-.7M11.9 4.1l.7-.7"
+              />
+            </svg>
+          </button>
+          <button class="rail-btn tb-btn" id="btn-theme" title="Сменить тему">
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <circle cx="8" cy="8" r="3.5" />
+              <path
+                d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.2 3.2l1.06 1.06M11.74 11.74l1.06 1.06M3.2 12.8l1.06-1.06M11.74 4.26l1.06-1.06"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- ── SIDEBAR FLYOUT ── -->
+      <aside id="sidebar" class="sidebar-collapsed">
+        <!-- Header с кнопкой закрыть -->
+        <div id="sidebar-header">
+          <div id="logo">
+            <svg class="logo-icon" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M12 3L3 7.5V16.5L12 21L21 16.5V7.5L12 3Z"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M12 3V21M3 7.5L12 12L21 7.5M12 12V21"
+                stroke="currentColor"
+                stroke-width="1"
+                stroke-linejoin="round"
+                opacity="0.4"
+              />
+            </svg>
+            <span class="logo-text">Knowledge<em>Studio</em></span>
+          </div>
+          <button
+            class="icon-btn-sm sidebar-close-btn"
+            id="sidebar-close"
+            title="Свернуть (Cmd+/)"
+          >
+            <svg
+              viewBox="0 0 14 14"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path d="M3 3l8 8M11 3l-8 8" stroke-linecap="round" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Новая тема -->
+        <div id="sidebar-new">
+          <button id="btn-new-topic" class="btn-new">
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path d="M8 3v10M3 8h10" stroke-linecap="round" />
+            </svg>
+            Новая тема
+          </button>
+        </div>
+
+        <!-- Список тем -->
+        <nav id="topics-list">
+          <div class="topics-empty">
+            <p>Нет тем.</p>
+            <p>Создай первую →</p>
+          </div>
+        </nav>
+      </aside>
+
+      <!-- Overlay — клик мимо закрывает сайдбар -->
+      <div id="sidebar-overlay"></div>
+
+      <!-- ── RESIZE HANDLE: sidebar ↔ main ── -->
+      <div class="resize-handle resize-h" id="resize-sidebar"></div>
+
+      <!-- ── MAIN AREA ── -->
+      <main id="main-area">
+        <!-- TOP NAV -->
+        <header id="topbar">
+          <div id="topbar-left">
+            <div id="topic-breadcrumb">
+              <span class="breadcrumb-placeholder">Выбери тему</span>
+            </div>
+          </div>
+
+          <nav id="mode-tabs">
+            <button class="mode-tab active" data-mode="tree">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path
+                  d="M3 3h2v2H3zM9 3h4M9 3v2M11 5v3M3 8h2v2H3zM9 8h4M9 10h2v2H9z"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              Список
+            </button>
+            <button class="mode-tab" data-mode="graph">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <circle cx="8" cy="4" r="1.5" />
+                <circle cx="3" cy="12" r="1.5" />
+                <circle cx="13" cy="12" r="1.5" />
+                <path d="M8 5.5L3 10.5M8 5.5L13 10.5M3 10.5L13 10.5" />
+              </svg>
+              Граф
+            </button>
+            <button class="mode-tab" data-mode="tutorial">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <rect x="2" y="2" width="12" height="12" rx="1.5" />
+                <path d="M5 6h6M5 8.5h6M5 11h4" stroke-linecap="round" />
+              </svg>
+              Учебник
+            </button>
+            <button class="mode-tab" data-mode="files">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path
+                  d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"
+                  stroke-linejoin="round"
+                />
+                <path d="M10 2v3h3" />
+              </svg>
+              Файлы
+            </button>
+          </nav>
+
+          <div id="topbar-right">
+            <button
+              class="icon-btn"
+              id="btn-auto-breakdown"
+              title="Авторазбор темы"
+            >
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M8 2v3" stroke-linecap="round"/>
+                <path d="M4 9v3M12 9v3" stroke-linecap="round"/>
+                <path d="M8 5l-4 4M8 5l4 4" stroke-linecap="round"/>
+                <circle cx="8" cy="2" r="1.2" fill="currentColor" stroke="none"/>
+                <circle cx="4" cy="12" r="1.2" fill="currentColor" stroke="none"/>
+                <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/>
+              </svg>
+            </button>
+            <button class="icon-btn" id="btn-export" title="Экспорт учебника">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path
+                  d="M8 10V2M5 5L8 2l3 3"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </button>
+            <button
+              class="icon-btn toggle-browser"
+              id="btn-toggle-browser"
+              title="Браузер (Cmd+B)"
+            >
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <rect x="1.5" y="3" width="13" height="10" rx="1.5" />
+                <path d="M1.5 6h13" />
+                <circle
+                  cx="4"
+                  cy="4.5"
+                  r=".75"
+                  fill="currentColor"
+                  stroke="none"
+                />
+                <circle
+                  cx="6.5"
+                  cy="4.5"
+                  r=".75"
+                  fill="currentColor"
+                  stroke="none"
+                />
+              </svg>
+            </button>
+            <button class="icon-btn" id="btn-collapse-tree" title="Скрыть / показать дерево вопросов">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M10 3L5 8l5 5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M14 3v10" stroke-linecap="round" opacity="0.4"/>
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <!-- CONTENT PANELS -->
+        <div id="content-wrapper">
+          <!-- ── TREE VIEW ── -->
+          <section id="panel-tree" class="content-panel active">
+            <!-- Дерево вопросов -->
+            <div id="tree-container">
+              <div class="empty-state">
+                <div class="empty-icon">
+                  <svg viewBox="0 0 48 48" fill="none">
+                    <path
+                      d="M24 8C15.2 8 8 15.2 8 24s7.2 16 16 16 16-7.2 16-16S32.8 8 24 8z"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      opacity=".3"
+                    />
+                    <path
+                      d="M24 16v8l6 4"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      opacity=".6"
+                    />
+                  </svg>
+                </div>
+                <h3>Выбери тему или создай новую</h3>
+                <p>Дерево вопросов появится здесь</p>
+                <button class="btn-primary" id="empty-new-topic">
+                  Создать тему
+                </button>
+              </div>
+            </div>
+
+            <!-- Resize handle: дерево ↔ панель ответа -->
+            <div class="resize-handle resize-h" id="resize-answer"></div>
+
+            <!-- Панель ответа -->
+            <div id="answer-panel" class="collapsed">
+              <div id="answer-panel-header"></div>
+              <div id="answer-content"></div>
+            </div>
+          </section>
+
+          <!-- ── GRAPH VIEW ── (v4: граф строит DOM сам через applyViewMode) -->
+          <section
+            id="panel-graph"
+            class="content-panel"
+            style="padding: 0; overflow: hidden; position: relative"
+          ></section>
+
+          <!-- ── TUTORIAL VIEW ── -->
+          <section id="panel-tutorial" class="content-panel">
+            <div class="empty-state">
+              <div class="empty-icon">
+                <svg viewBox="0 0 48 48" fill="none">
+                  <rect
+                    x="8"
+                    y="6"
+                    width="32"
+                    height="36"
+                    rx="3"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    opacity=".3"
+                  />
+                  <path
+                    d="M16 16h16M16 22h16M16 28h10"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    opacity=".6"
+                  />
+                </svg>
+              </div>
+              <h3>Учебник не сгенерирован</h3>
+              <p>
+                Изучи хотя бы несколько вопросов, затем нажми «Создать учебник»
+              </p>
+              <button class="btn-primary">Создать учебник</button>
+            </div>
+          </section>
+
+          <!-- ── FILES VIEW ── -->
+          <section id="panel-files" class="content-panel">
+            <div class="empty-state">
+              <div class="empty-icon">
+                <svg viewBox="0 0 48 48" fill="none">
+                  <path
+                    d="M12 6h18l10 10v26a2 2 0 01-2 2H12a2 2 0 01-2-2V8a2 2 0 012-2z"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    opacity=".3"
+                  />
+                  <path
+                    d="M30 6v10h10"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    opacity=".4"
+                  />
+                  <path
+                    d="M24 22v12M18 28l6 6 6-6"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    opacity=".7"
+                  />
+                </svg>
+              </div>
+              <h3>Файлы не прикреплены</h3>
+              <p>Открой PDF, DOCX или изображение для работы с темой</p>
+              <button class="btn-primary" id="btn-open-file">
+                Открыть файл
+              </button>
+            </div>
+          </section>
+        </div>
+        <!-- /content-wrapper -->
+      </main>
+
+      <!-- Resize handle: main-area ↔ browser-panel -->
+      <div class="resize-handle resize-h" id="resize-browser"></div>
+
+      <!-- BROWSER PANEL -->
+      <aside id="browser-panel" class="collapsed">
+        <div id="browser-tabs">
+          <button class="browser-tab active" data-url="https://claude.ai">
+            <span class="tab-favicon">🤖</span>Claude
+          </button>
+          <button class="browser-tab" data-url="https://chatgpt.com">
+            <span class="tab-favicon">💬</span>ChatGPT
+          </button>
+          <button class="browser-tab" data-url="https://gemini.google.com">
+            <span class="tab-favicon">♊</span>Gemini
+          </button>
+          <button
+            class="browser-tab-add"
+            id="btn-add-tab"
+            title="Добавить вкладку"
+          >
+            +
+          </button>
+          <button class="browser-tab-expand" id="btn-expand-browser" title="Расширить панель ИИ">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M8 2l3 3-3 3M1 5h10" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div id="browser-toolbar">
+          <button
+            class="icon-btn-sm"
+            id="btn-send-question"
+            title="Вставить вопрос в ИИ (Shift+клик — вставить и сразу отправить)"
+          >
+            <svg
+              viewBox="0 0 14 14"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              style="width: 13px; height: 13px; flex-shrink: 0"
+            >
+              <path
+                d="M2 7h10M8 3l4 4-4 4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span class="send-label">Отправить вопрос</span>
+          </button>
+          <input
+            id="browser-url"
+            type="text"
+            placeholder="URL..."
+            spellcheck="false"
+          />
+          <button
+            class="icon-btn-sm"
+            id="btn-browser-reload"
+            title="Перезагрузить"
+          >
+            <svg
+              viewBox="0 0 14 14"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path
+                d="M12 2v4H8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path d="M2 7a5 5 0 018.9-2.1L12 6" stroke-linecap="round" />
+              <path
+                d="M2 12v-4h4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path d="M12 7a5 5 0 01-8.9 2.1L2 8" stroke-linecap="round" />
+            </svg>
+          </button>
+        </div>
+        <div id="browser-webview-container">
+          <!-- webview вставляется динамически browser.js -->
+          <div class="browser-placeholder">
+            <p>Браузер загружается…</p>
+          </div>
+        </div>
+      </aside>
+    </div>
+    <!-- /app -->
+
+    <!-- ═══════════════════════════════════════════════════════════
+       MODALS
+  ════════════════════════════════════════════════════════════ -->
+
+    <!-- Создание темы -->
+    <div id="modal-new-topic" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>Новая тема</h2>
+          <button class="icon-btn modal-close" data-modal="modal-new-topic">
+            <svg
+              viewBox="0 0 14 14"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path d="M3 3l8 8M11 3l-8 8" stroke-linecap="round" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <label class="field-label">Название темы</label>
+          <input
+            class="field-input"
+            id="input-topic-name"
+            type="text"
+            placeholder="Например: Квантовая механика"
+          />
+
+          <label class="field-label"
+            >Системный промпт
+            <span class="field-hint"
+              >Задаёт стиль ответов ИИ для всей темы</span
+            >
+          </label>
+          <textarea
+            class="field-textarea"
+            id="input-topic-prompt"
+            rows="6"
+            placeholder="Ты опытный педагог. Объясняй чётко, с примерами. Структурируй ответ: краткое определение → суть → пример → связь с другими темами."
+          ></textarea>
+
+          <label class="field-label">Или выбери шаблон</label>
+          <div id="prompt-templates">
+            <!-- prompt.js генерирует кнопки шаблонов -->
+            <button class="template-chip">🎓 Учёба</button>
+            <button class="template-chip">💡 Разработка</button>
+            <button class="template-chip">📐 Математика</button>
+            <button class="template-chip">🌍 История</button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" data-modal="modal-new-topic">
+            Отмена
+          </button>
+          <button class="btn-primary" id="btn-create-topic">
+            Создать тему
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Clipboard propose (содержимое перестраивается clipboard.js) -->
+    <div id="toast-clipboard" class="toast hidden"></div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+       SCRIPTS
+  ════════════════════════════════════════════════════════════ -->
+    <!-- pdf.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script>
+      if (window.pdfjsLib) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      }
+    </script>
+
+    <script src="renderer/state.js"></script>
+    <script src="renderer/ipc.js"></script>
+    <script src="renderer/updater.js"></script>
+    <script src="renderer/tree-helpers.js"></script>
+    <script src="renderer/render.js"></script>
+    <script src="renderer/answer-panel.js"></script>
+    <script src="renderer/clipboard.js"></script>
+    <script src="renderer/crossref.js"></script>
+    <script src="renderer/browser.js"></script>
+    <script src="renderer/docx-export.js"></script>
+    <script src="renderer/export.js"></script>
+    <script src="renderer/prompt.js"></script>
+    <script src="renderer/graph.js"></script>
+    <script src="renderer/gemini-api.js"></script>
+    <script src="renderer/autobreakdown.js"></script>
+    <script src="renderer/settings.js"></script>
+    <script src="renderer/render-markdown.js"></script>
+    <script src="renderer/image-drop.js"></script>
+    <script src="renderer/files.js"></script>
+    <script src="renderer/index.js"></script>
+    <script src="renderer/autostudy.js"></script>
+  </body>
+</html>

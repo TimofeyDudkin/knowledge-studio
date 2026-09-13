@@ -1,0 +1,107 @@
+/* ═══════════════════════════════════════════════════════════════
+   themes.css — дизайн-токены, тёмная и светлая тема
+   Стиль: Electric Dark — глубокий космос + неоновый violet
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── DARK THEME (default) ─────────────────────────────────── */
+[data-theme="dark"] {
+  /* Backgrounds — глубокий космос с индиго-подтоном */
+  --bg-base:    #08080e;
+  --bg-sidebar: #0c0c16;
+  --bg-hover:   #131320;
+  --bg-active:  #18182c;
+  --bg-modal:   #0f0f1c;
+  --bg-code:    #0b0b18;
+  --bg-card:    #111120;
+
+  /* Text */
+  --text-primary:   #f0efff;
+  --text-secondary: #9494c8;
+  --text-muted:     #484870;
+
+  /* Borders */
+  --border-subtle:  #161626;
+  --border-default: #22223c;
+  --border-hover:   #303055;
+
+  /* Accent: electric violet */
+  --accent:         #a78bfa;
+  --accent-hover:   #8b6ff5;
+  --accent-warm:    #fb7185;
+  --accent-muted:   rgba(167, 139, 250, 0.25);
+
+  /* Gradient system */
+  --gradient-accent: linear-gradient(135deg, #a78bfa 0%, #818cf8 100%);
+  --gradient-accent-h: linear-gradient(135deg, #8b6ff5 0%, #6366f1 100%);
+  --gradient-glow: 0 0 24px rgba(167, 139, 250, 0.28), 0 0 48px rgba(129, 140, 248, 0.12);
+
+  /* Node statuses */
+  --status-open:   #3a3a58;
+  --status-active: #fbbf24;
+  --status-done:   #34d399;
+
+  /* Graph */
+  --graph-node-bg:     #13132a;
+  --graph-node-border: #35355a;
+  --graph-edge:        #252542;
+  --graph-node-active: #a78bfa;
+}
+
+/* ─── LIGHT THEME ──────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg-base:    #f5f5ff;
+  --bg-sidebar: #eeeef8;
+  --bg-hover:   #e5e5f5;
+  --bg-active:  #dcdcf0;
+  --bg-modal:   #ffffff;
+  --bg-code:    #f0f0fa;
+  --bg-card:    #f8f8ff;
+
+  --text-primary:   #0e0e24;
+  --text-secondary: #4a4a78;
+  --text-muted:     #8888b0;
+
+  --border-subtle:  #e0e0f0;
+  --border-default: #ccccec;
+  --border-hover:   #b8b8e0;
+
+  --accent:         #7c3aed;
+  --accent-hover:   #6d28d9;
+  --accent-warm:    #dc2626;
+  --accent-muted:   rgba(124, 58, 237, 0.2);
+
+  --gradient-accent: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+  --gradient-accent-h: linear-gradient(135deg, #6d28d9 0%, #4338ca 100%);
+  --gradient-glow: 0 0 16px rgba(124, 58, 237, 0.2), 0 0 32px rgba(79, 70, 229, 0.1);
+
+  --status-open:   #c4c4e8;
+  --status-active: #d97706;
+  --status-done:   #059669;
+
+  --graph-node-bg:     #ffffff;
+  --graph-node-border: #c4c4ec;
+  --graph-edge:        #b0b0e0;
+  --graph-node-active: #7c3aed;
+}
+
+/* ─── GLOBAL ANIMATIONS ────────────────────────────────────── */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(167, 139, 250, 0.2); }
+  50%       { box-shadow: 0 0 20px rgba(167, 139, 250, 0.45); }
+}
+@keyframes gradient-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ─── THEME TRANSITION ─────────────────────────────────────── */
+body {
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+#sidebar,
+#browser-panel,
+.modal,
+.toast {
+  transition: background-color 0.25s ease;
+}

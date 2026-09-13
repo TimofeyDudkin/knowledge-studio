@@ -1,0 +1,300 @@
+/* ── Math: KaTeX или fallback-pending ── */
+
+/* Pending — ждём загрузки KaTeX, показываем красиво */
+.ap-answer-body .md-math-pending {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-style: italic;
+  color: color-mix(in srgb, var(--accent) 80%, var(--text-primary));
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.96em;
+  white-space: nowrap;
+}
+.ap-answer-body .md-math-pending.md-math-block {
+  display: block;
+  text-align: center;
+  padding: 14px 20px;
+  margin: 16px 0;
+  border-radius: 8px;
+  white-space: pre;
+  font-size: 1.05em;
+  border-left: 3px solid var(--accent);
+}
+
+/* После рендера KaTeX — убираем pending вид */
+.ap-answer-body .md-math-block {
+  display: block;
+  overflow-x: auto;
+  padding: 14px 18px;
+  margin: 16px 0;
+  background: var(--bg-code, #1c1c22);
+  border: 1px solid var(--border-default);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  text-align: center;
+  font-size: 1.05em;
+  color: var(--text-primary);
+  font-family: 'KaTeX_Main', 'Latin Modern Math', serif;
+}
+.ap-answer-body .md-math-inline {
+  display: inline-block;
+  padding: 1px 5px;
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-radius: 4px;
+  font-family: 'KaTeX_Main', 'Latin Modern Math', serif;
+  font-size: 0.97em;
+  color: var(--text-primary);
+}
+.ap-answer-body .md-math-err {
+  color: #f87171;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.9em;
+  padding: 1px 5px;
+  background: rgba(248,113,113,0.08);
+  border-radius: 4px;
+}
+
+/* KaTeX rendered — блочный и строчный */
+.ap-answer-body .katex-display {
+  margin: 18px 0;
+  padding: 18px 20px;
+  background: var(--bg-code, #1c1c22);
+  border: 1px solid var(--border-default);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px;
+  overflow-x: auto;
+  text-align: center;
+}
+.ap-answer-body .katex {
+  font-size: 1.05em;
+  color: var(--text-primary);
+}
+.ap-answer-body .katex-html {
+  color: var(--text-primary);
+}
+/* KaTeX inline — лёгкий background */
+.ap-answer-body p .katex,
+.ap-answer-body li .katex {
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+[data-theme="dark"] .ap-answer-body .katex { color: #e8e8ed; }
+[data-theme="dark"] .ap-answer-body .katex-html { color: #e8e8ed; }
+[data-theme="light"] .ap-answer-body .katex { color: #111118; }
+[data-theme="light"] .ap-answer-body .katex-html { color: #111118; }
+/* Улучшенные таблицы */
+.ap-answer-body .md-table-wrap {
+  overflow-x: auto;
+  margin: 16px 0;
+  border-radius: 8px;
+  border: 1px solid var(--border-default);
+}
+.ap-answer-body .md-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.ap-answer-body .md-table th,
+.ap-answer-body .md-table td {
+  padding: 9px 14px;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  border-right: 1px solid var(--border-subtle);
+  vertical-align: top;
+  word-break: normal;
+  min-width: 80px;
+}
+.ap-answer-body .md-table th:last-child,
+.ap-answer-body .md-table td:last-child {
+  border-right: none;
+}
+.ap-answer-body .md-table tr:last-child td {
+  border-bottom: none;
+}
+.ap-answer-body .md-table-th {
+  background: var(--bg-active);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.ap-answer-body .md-table-td {
+  color: var(--text-secondary);
+}
+.ap-answer-body .md-table tr:hover td {
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+/* ── Mermaid диаграммы ── */
+.ap-answer-body .md-mermaid {
+  margin: 18px 0;
+  padding: 18px;
+  background: var(--bg-code, #1c1c22);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  overflow-x: auto;
+  text-align: center;
+}
+.ap-answer-body .md-mermaid svg {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+.md-mermaid-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.md-mermaid-spinner {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,0.15);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: mmd-spin 0.7s linear infinite;
+}
+@keyframes mmd-spin { to { transform: rotate(360deg); } }
+.md-mermaid-err-msg {
+  color: #f87171;
+  font-size: 12px;
+  font-family: var(--font-mono, monospace);
+}
+
+/* ── Нумерация строк кода ── */
+.ap-answer-body .code-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  min-height: 1.65em;
+}
+.ap-answer-body .code-ln {
+  display: inline-block;
+  min-width: 36px;
+  padding-right: 16px;
+  color: var(--text-muted);
+  font-size: 11px;
+  user-select: none;
+  text-align: right;
+  opacity: 0.45;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+.ap-answer-body .code-line:hover .code-ln {
+  opacity: 0.8;
+}
+.ap-answer-body .code-line:hover {
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+  border-radius: 3px;
+}
+/* Счётчик строк в шапке */
+.ap-answer-body .code-lines {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  font-family: "DM Mono", monospace;
+  margin-left: auto;
+  margin-right: 8px;
+  opacity: 0.6;
+}
+/* Убираем отступ у hljs внутри pre */
+.ap-answer-body pre code.hljs {
+  background: transparent;
+  padding: 0;
+}
+/* hljs переопределения для темы */
+.ap-answer-body .hljs-keyword    { color: #c792ea; }
+.ap-answer-body .hljs-string     { color: #c3e88d; }
+.ap-answer-body .hljs-comment    { color: #546e7a; font-style: italic; }
+.ap-answer-body .hljs-number     { color: #f78c6c; }
+.ap-answer-body .hljs-function   { color: #82aaff; }
+.ap-answer-body .hljs-title      { color: #ffcb6b; }
+.ap-answer-body .hljs-built_in   { color: #80cbc4; }
+.ap-answer-body .hljs-type       { color: #ffcb6b; }
+.ap-answer-body .hljs-attr       { color: #80cbc4; }
+.ap-answer-body .hljs-variable   { color: #f07178; }
+.ap-answer-body .hljs-operator   { color: #89ddff; }
+[data-theme="light"] .ap-answer-body .hljs-keyword  { color: #7c4dff; }
+[data-theme="light"] .ap-answer-body .hljs-string   { color: #388e3c; }
+[data-theme="light"] .ap-answer-body .hljs-comment  { color: #9e9e9e; }
+[data-theme="light"] .ap-answer-body .hljs-number   { color: #e65100; }
+[data-theme="light"] .ap-answer-body .hljs-function { color: #1565c0; }
+[data-theme="light"] .ap-answer-body .hljs-title    { color: #6a1e9a; }
+
+/* ── Mermaid zoom/pan toolbar ── */
+.ap-answer-body .md-mermaid {
+  position: relative;
+  min-height: 120px;
+  cursor: default;
+}
+.ap-answer-body .md-mermaid.md-mermaid-done {
+  min-height: 200px;
+  padding-bottom: 36px;
+}
+.ap-answer-body .md-mermaid svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: none;
+  transform-origin: 0 0;
+}
+/* Toolbar: zoom кнопки */
+.mmd-toolbar {
+  position: absolute;
+  top: 10px; right: 10px;
+  display: flex;
+  gap: 4px;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.18s;
+}
+.ap-answer-body .md-mermaid:hover .mmd-toolbar {
+  opacity: 1;
+}
+.mmd-btn {
+  width: 28px; height: 28px;
+  background: color-mix(in srgb, var(--bg-hover) 90%, transparent);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  backdrop-filter: blur(4px);
+  font-family: inherit;
+  padding: 0;
+}
+.mmd-btn:hover {
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg-hover));
+  border-color: var(--accent);
+  color: var(--accent);
+}
+/* Хинт снизу */
+.mmd-hint {
+  position: absolute;
+  bottom: 8px; left: 0; right: 0;
+  text-align: center;
+  font-size: 10.5px;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.18s;
+  pointer-events: none;
+  letter-spacing: 0.02em;
+}
+.ap-answer-body .md-mermaid:hover .mmd-hint {
+  opacity: 0.7;
+}

@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ГистоЛаб — Совместный просмотр</title>
+<script>
+(function(){
+  var s=document.createElement('script');
+  s.src='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
+  s.onerror=function(){var s2=document.createElement('script');
+  s2.src='https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';
+  document.head.appendChild(s2);};
+  document.head.appendChild(s);
+})();
+</script>
+<style>
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--bd:#30363d;
+  --tx:#e6edf3;--dm:#8b949e;--ac:#388bfd;--a2:#58a6ff;
+  --gn:#3fb950;--rd:#f85149;--yw:#d29922;--or:#f0883e
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:'Segoe UI',system-ui,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* ── TOP BAR ── */
+#top{display:flex;align-items:center;gap:6px;padding:5px 10px;background:var(--bg2);border-bottom:1px solid var(--bd);flex-shrink:0;flex-wrap:wrap;min-height:36px}
+h1{font-size:13px;font-weight:700;flex-shrink:0}
+h1 em{color:var(--a2);font-style:normal;font-weight:400}
+.vs{width:1px;height:18px;background:var(--bd);flex-shrink:0}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:2px 7px;border-radius:99px;border:1px solid var(--bd);background:var(--bg3)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--yw);transition:background .3s}
+.dot.on{background:var(--gn)}.dot.off{background:var(--rd)}.dot.warn{background:var(--or)}
+#idBox{font-size:11px;font-family:monospace;color:var(--a2);cursor:pointer;padding:2px 8px;background:var(--bg3);border:1px solid var(--bd);border-radius:5px;letter-spacing:.05em;user-select:none}
+#idBox:hover{border-color:var(--ac)}
+#pIn{padding:2px 7px;font-size:12px;font-family:monospace;background:var(--bg3);border:1px solid var(--bd);border-radius:5px;color:var(--tx);width:82px;outline:none;text-transform:uppercase;letter-spacing:.05em}
+#pIn:focus{border-color:var(--ac)}
+.btn{padding:2px 10px;font-size:11px;font-weight:500;border:1px solid var(--bd);border-radius:5px;background:var(--bg3);color:var(--tx);cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--ac)}.btn.p{background:var(--ac);border-color:var(--ac);color:#fff}.btn.p:hover{opacity:.85}
+.btn.d{border-color:var(--rd);color:var(--rd)}.btn.d:hover{background:var(--rd);color:#fff}
+#sm{font-size:11px;color:var(--dm);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:80px}
+/* ping bars */
+#pb{display:none;align-items:flex-end;gap:2px;padding:2px 6px;background:var(--bg3);border:1px solid var(--bd);border-radius:99px;height:20px}
+.qs{width:3px;border-radius:1px 1px 0 0;background:var(--bd)}
+#pl{font-size:10px;color:var(--dm);margin-left:3px;min-width:28px}
+
+/* ── LAYOUT ── */
+#main{display:flex;flex:1;min-height:0}
+
+/* ── SIDEBAR ── */
+#sb{width:240px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden}
+#sbx{padding:7px;border-bottom:1px solid var(--bd)}
+#srch{width:100%;padding:5px 8px;font-size:12px;background:var(--bg3);border:1px solid var(--bd);border-radius:5px;color:var(--tx);outline:none}
+#srch:focus{border-color:var(--ac)}
+#pl2{flex:1;overflow-y:auto;padding:3px}
+#pl2::-webkit-scrollbar{width:4px}#pl2::-webkit-scrollbar-thumb{background:var(--bd);border-radius:2px}
+.sh{font-size:10px;font-weight:600;color:var(--dm);text-transform:uppercase;padding:6px 7px 2px;letter-spacing:.05em}
+.pi{padding:6px 8px;border-radius:5px;cursor:pointer;border:1px solid transparent;margin-bottom:2px}
+.pi:hover{background:var(--bg3)}.pi.active{background:rgba(56,139,253,.12);border-color:var(--ac)}
+.pt{font-size:11px;font-weight:500;line-height:1.3;margin-bottom:2px}
+.pid{font-size:10px;color:var(--dm);font-family:monospace}
+
+/* ── VIEWER ── */
+#vw{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
+#vt{padding:5px 9px;background:var(--bg2);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap}
+#ptitle{font-size:12px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dm)}
+.lb{padding:2px 8px;font-size:11px;border:1px solid var(--bd);border-radius:4px;background:var(--bg3);color:var(--a2);cursor:pointer}
+.lb:hover,.lb.cur{border-color:var(--ac)}
+
+/* ── VIEWPORT (scrollable container) ── */
+#vp{
+  flex:1;overflow:auto;position:relative;background:#0a0a0a;
+  cursor:grab;
+}
+#vp.dragging{cursor:grabbing}
+#vp::-webkit-scrollbar{width:8px;height:8px}
+#vp::-webkit-scrollbar-track{background:var(--bg3)}
+#vp::-webkit-scrollbar-thumb{background:var(--bd);border-radius:4px}
+#vp::-webkit-scrollbar-thumb:hover{background:var(--dm)}
+
+/* ── INNER: iframe + canvas overlay, sized by zoom ── */
+/* IMPORTANT: we use CSS zoom on #inner, NOT transform:scale
+   CSS zoom re-renders at native resolution — no quality loss */
+#inner{
+  position:relative;
+  /* size set by JS: base_w * zoom, base_h * zoom */
+  flex-shrink:0;
+}
+#fr{
+  display:block;border:none;
+  width:100%;height:100%;
+  /* iframe renders at NATIVE resolution because we use zoom on parent */
+}
+/* draw canvas: absolutely positioned over iframe, same size */
+#dl{
+  position:absolute;top:0;left:0;
+  width:100%;height:100%;
+  pointer-events:none;
+  /* canvas px = inner px, so strokes align perfectly */
+}
+/* overlay: captures mouse, absolutely positioned over viewport */
+#ov{
+  position:absolute;top:0;left:0;
+  width:100%;height:100%;
+  z-index:10;
+}
+
+/* ── NO PREP ── */
+#np{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--dm);gap:10px;font-size:13px;background:var(--bg);z-index:5}
+
+/* ── REMOTE CURSOR ── */
+#rc2{position:fixed;pointer-events:none;z-index:100;display:none}
+.cl{position:absolute;top:16px;left:2px;background:rgba(56,139,253,.9);color:#fff;font-size:10px;padding:1px 5px;border-radius:3px;white-space:nowrap}
+
+/* ── MY CURSOR DOT ── */
+#md{position:fixed;width:10px;height:10px;border-radius:50%;border:2px solid rgba(255,255,255,.5);pointer-events:none;z-index:101;display:none;transform:translate(-50%,-50%)}
+
+/* ── TOOLBAR ── */
+#tb{position:fixed;z-index:50;display:flex;flex-direction:column;gap:3px;background:var(--bg2);border:1px solid var(--bd);border-radius:9px;padding:4px}
+.t{width:30px;height:30px;border:1px solid transparent;border-radius:5px;background:transparent;color:var(--dm);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px}
+.t:hover{background:var(--bg3);color:var(--tx)}.t.on{background:rgba(56,139,253,.2);border-color:var(--ac);color:var(--a2)}
+.tsep{height:1px;background:var(--bd);margin:2px 0}
+#zl{font-size:9px;color:var(--dm);text-align:center;padding:1px 0;min-width:30px}
+
+/* ── COLOR PICKER ── */
+#cp{position:fixed;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:7px;display:none;flex-direction:column;gap:5px;z-index:60;box-shadow:0 4px 20px rgba(0,0,0,.6)}
+#cp.show{display:flex}
+.cr{display:flex;gap:4px}
+.cc{width:18px;height:18px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .1s}
+.cc:hover,.cc.s{border-color:#fff;transform:scale(1.2)}
+#szr{display:flex;align-items:center;gap:5px;padding-top:4px;border-top:1px solid var(--bd)}
+#szr label{font-size:10px;color:var(--dm)}
+#bsz{width:60px;accent-color:var(--ac)}
+#cl2{font-size:10px;padding:2px 6px;border:1px solid var(--bd);border-radius:4px;background:transparent;color:var(--rd);cursor:pointer}
+#cl2:hover{background:var(--rd);color:#fff}
+
+/* ── CHAT ── */
+#ch{width:195px;flex-shrink:0;background:var(--bg2);border-left:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden}
+#chh{padding:6px 9px;border-bottom:1px solid var(--bd);font-size:11px;font-weight:600;color:var(--dm)}
+#ms{flex:1;overflow-y:auto;padding:6px;display:flex;flex-direction:column;gap:4px}
+#ms::-webkit-scrollbar{width:3px}#ms::-webkit-scrollbar-thumb{background:var(--bd);border-radius:2px}
+.mg{padding:4px 7px;border-radius:6px;font-size:11px;line-height:1.4;word-break:break-word}
+.mg.me{background:rgba(56,139,253,.2);align-self:flex-end}.mg.th{background:var(--bg3);align-self:flex-start}
+.mg.sy{background:transparent;color:var(--dm);font-size:10px;text-align:center;padding:1px 0;align-self:center}
+.mw{font-size:10px;color:var(--dm);margin-bottom:1px}
+#ci{display:flex;padding:5px;gap:4px;border-top:1px solid var(--bd)}
+#ct{flex:1;padding:3px 6px;font-size:11px;background:var(--bg3);border:1px solid var(--bd);border-radius:4px;color:var(--tx);outline:none}
+#ct:focus{border-color:var(--ac)}
+#cs{padding:3px 8px;font-size:11px;background:var(--ac);border:none;border-radius:4px;color:#fff;cursor:pointer}
+
+/* ── RECONNECT OVERLAY ── */
+#rco{position:fixed;inset:0;background:rgba(13,17,23,.9);z-index:500;display:none;flex-direction:column;align-items:center;justify-content:center;gap:11px;backdrop-filter:blur(4px)}
+#rco.show{display:flex}
+#rco h2{font-size:14px}
+#rco p{font-size:11px;color:var(--dm);text-align:center;max-width:280px;line-height:1.5}
+.spin{width:30px;height:30px;border:3px solid var(--bd);border-top-color:var(--ac);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+#rca{font-size:10px;color:var(--dm)}
+#rcc{padding:3px 12px;font-size:11px;border:1px solid var(--bd);border-radius:5px;background:var(--bg3);color:var(--dm);cursor:pointer}
+#rcc:hover{border-color:var(--rd);color:var(--rd)}
+
+/* ── TOAST ── */
+#tst{position:fixed;bottom:16px;left:50%;transform:translateX(-50%) translateY(44px);background:var(--bg3);border:1px solid var(--bd);padding:5px 13px;border-radius:7px;font-size:11px;z-index:9999;transition:transform .2s;pointer-events:none;white-space:nowrap}
+#tst.show{transform:translateX(-50%) translateY(0)}
+#tst.ok{border-color:var(--gn);color:var(--gn)}
+#tst.err{border-color:var(--rd);color:var(--rd)}
+</style>
+</head>
+<body>
+
+<div id="top">
+  <h1>Гисто<em>Лаб</em></h1>
+  <div class="vs"></div>
+  <div class="badge"><div class="dot" id="dot"></div><span id="stxt">...</span></div>
+  <div id="pb">
+    <div class="qs" id="qs1" style="height:4px"></div>
+    <div class="qs" id="qs2" style="height:7px"></div>
+    <div class="qs" id="qs3" style="height:10px"></div>
+    <div class="qs" id="qs4" style="height:13px"></div>
+    <span id="pl">—</span>
+  </div>
+  <div id="idBox" title="Нажми — скопировать">—</div>
+  <input id="pIn" placeholder="XXXXXX" maxlength="6" autocomplete="off" spellcheck="false">
+  <button class="btn p" id="conBtn">Подключиться</button>
+  <button class="btn d" id="disBtn" style="display:none">Отключить</button>
+  <div class="vs"></div>
+  <div id="sm">Загрузка...</div>
+</div>
+
+<div id="main">
+  <!-- SIDEBAR -->
+  <div id="sb">
+    <div id="sbx"><input id="srch" placeholder="🔍 Поиск препаратов..."></div>
+    <div id="pl2"></div>
+  </div>
+
+  <!-- VIEWER -->
+  <div id="vw">
+    <div id="vt">
+      <div id="ptitle">Выберите препарат</div>
+      <div id="lbs"></div>
+    </div>
+
+    <!-- SCROLLABLE VIEWPORT -->
+    <div id="vp">
+      <div id="np">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".3"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        <div>Выберите препарат из списка</div>
+        <div style="font-size:11px;margin-top:2px">Оба участника увидят одно и то же</div>
+      </div>
+      <!-- #inner holds iframe+canvas, CSS zoom applied here = no quality loss -->
+      <div id="inner">
+        <iframe id="fr" src="about:blank" scrolling="no" allow="fullscreen"></iframe>
+        <canvas id="dl"></canvas>
+        <div id="ov"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHAT -->
+  <div id="ch">
+    <div id="chh">💬 Чат</div>
+    <div id="ms"></div>
+    <div id="ci">
+      <input id="ct" placeholder="Сообщение..." maxlength="200">
+      <button id="cs">→</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toolbar (fixed, positioned by JS) -->
+<div id="tb">
+  <button class="t" id="tPan" title="Перемещать">✋</button>
+  <button class="t on" id="tDraw" title="Карандаш">✏️</button>
+  <button class="t" id="tEr" title="Ластик">🧹</button>
+  <button class="t" id="tArr" title="Стрелка">↗</button>
+  <div class="tsep"></div>
+  <button class="t" id="tZI" title="Приблизить (+)">＋</button>
+  <div id="zl">100%</div>
+  <button class="t" id="tZO" title="Отдалить (−)">－</button>
+  <button class="t" id="tZR" title="Сброс">⊙</button>
+  <div class="tsep"></div>
+  <button class="t" id="tCol">🎨</button>
+  <button class="t" id="tClr">🗑</button>
+</div>
+
+<!-- Color picker (fixed) -->
+<div id="cp">
+  <div class="cr">
+    <div class="cc s" style="background:#f44336" data-c="#f44336"></div>
+    <div class="cc" style="background:#2196f3" data-c="#2196f3"></div>
+    <div class="cc" style="background:#4caf50" data-c="#4caf50"></div>
+    <div class="cc" style="background:#ff9800" data-c="#ff9800"></div>
+    <div class="cc" style="background:#e91e63" data-c="#e91e63"></div>
+    <div class="cc" style="background:#9c27b0" data-c="#9c27b0"></div>
+  </div>
+  <div class="cr">
+    <div class="cc" style="background:#00bcd4" data-c="#00bcd4"></div>
+    <div class="cc" style="background:#ffee58" data-c="#ffee58"></div>
+    <div class="cc" style="background:#fff" data-c="#fff"></div>
+    <div class="cc" style="background:#212121" data-c="#212121"></div>
+    <div class="cc" style="background:#795548" data-c="#795548"></div>
+    <div class="cc" style="background:#607d8b" data-c="#607d8b"></div>
+  </div>
+  <div id="szr">
+    <label>Размер</label>
+    <input type="range" id="bsz" min="1" max="24" value="3">
+    <button id="cl2">Очистить</button>
+  </div>
+</div>
+
+<!-- Remote cursor & my dot (fixed to screen) -->
+<div id="rc2">
+  <svg width="13" height="17" viewBox="0 0 13 17"><path d="M1 1l11 5-5 2-2 5z" fill="#388bfd" stroke="#fff" stroke-width="1"/></svg>
+  <div class="cl" id="rn">Партнёр</div>
+</div>
+<div id="md"></div>
+
+<!-- Reconnect -->
+<div id="rco">
+  <div class="spin"></div>
+  <h2>Переподключение...</h2>
+  <p id="rcm">Соединение прервано</p>
+  <div id="rca">Попытка 1 / 10</div>
+  <button id="rcc">Отменить</button>
+</div>
+<div id="tst"></div>
+
+<script>
+const DATA=[{"id":"af_01.1","title":"Артериолы,венулы, капилляры","description":"Виртуальный микропрепарат [2] (гематоксилин-эозин) Виртуальный микропрепарат [3]","staining":"тотальный препарат","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/a_01.1.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/a_01.2.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/a_01.1a.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/af_01.1.html","section":"a"},{"id":"af_01.3","title":"Артериолы, венулы, капилляры","description":"гемокапилляры - наиболее мелкие сосуды внутренним диаметром 3-12 мкм (внутренний просвет 1-2 эритроцита), выстланные эндотелием, наружный слой формируют перициты; артериолы - более крупные сосуды (диаметр 50-100 мкм), выстланы эндотелием, в средней оболочке содержат циркулярно ра","staining":"гистологический срез, гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/a_01.3.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/af_01.3.html","section":"a"},{"id":"af_01.4","title":"Гемокапилляр соматического типа","description":"капилляры данного типа наиболее распространены в организме; эндотелиальные клетки соединены межклеточными контактами (шелевые соединения и нексусы) и образуют непрерывную выстилку; в цитоплазме содержат многочисленные эндоцитозные пузырьки; базальная мембрана непрерывная.","staining":"ТЭМ, х2500","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/a_01.4.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/af_01.4.html","section":"a"},{"id":"af_01.5","title":"Гемокапилляр соматического типа","description":"капилляры данного типа характеризуются тонким эндотелием, в котором имеются поры (фенестры) диаметром 50-80 нм, в большинстве случаев затянутые диафрагмой толщиной 4-6 нм; фенестрированные капилляры встречаются в почечном тельце, эндокринных железах, слизистых оболочках пищеварит","staining":"ТЭМ, х2500","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/a_01.5.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/af_01.5.html","section":"a"},{"id":"af_02.1","title":"Артерия мышечного типа и вена со слабым развитием мышечных элементов","description":"Виртуальный микропрепарат [2] Виртуальный микропрепарат [3]","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/a_02.3.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/a_02.2.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/a_02.1.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/af_02.1.html","section":"a"},{"id":"af_03.1","title":"Артерия эластического типа","description":"внутренняя оболочка (t.intima) выстлана эндотелием, под которым располагается рыхлая волокнистая соединительная ткань субэндотелиального слоя; в наиболее выраженной средней оболочке (t.media) преобладают многочисленные окончатые эластические мембраны, имеющие вид светлых пластин,","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/a_03.1.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/a_03.2.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/af_03.1.html","section":"a"},{"id":"af_03.3","title":"Артерия эластического типа","description":"эластические элементы окрашиваются орсеином в вишнево-красный или коричневый цвет; внутренняя и наружная оболочки содержат тонкие эластические волокна, а средняя - многочисленные окончатые эластические мембраны, имеющие вид толстых извитых концентрически расположенных пластин.","staining":"орсеин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/a_03.3.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/af_03.3.html","section":"a"},{"id":"af_04.1","title":"Вена с сильным развитием мышечных элементов","description":"содержит вены с тонкой стенкой, выстланной сосудистым эндотелием, субэндотелиальный слой сливается с адвентицией и формирует общую соединительнотканную оболочку, не содержащую гладких миоцитов.","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/a_04.1.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/af_04.1.html","section":"a"},{"id":"af_04.2","title":"Вена со слабым развитием мышечных элементов","description":"наружная оболочка наиболее выражена (в 3—4 раза превосходит по толщине внутреннюю и среднюю оболочки) во внутренней оболочке (t.intima) найти эндотелий (видны только ядра клеток) и слабо выраженный субэндотелиальный слой, внутрення эластическая мембрана отсутствует; в тонкой сред","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/a_04.2.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/af_04.2.html","section":"a"},{"id":"af_04.3","title":"Вена с сильным развитием мышечных элементов","description":"во внутренней оболочке (t.intima) найти эндотелий и рыхлую волокнистую соединительную ткань субдэндотелиального слоя с продольно ориентированными единичными гладкими миоцитами; в средней оболочке (t.media) циркулярно расположенные пучки неисчерченных мышечных клетокю разделены пр","staining":"гематокилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/a_04.3.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/af_04.3.html","section":"a"},{"id":"af_04.4","title":"Вена с сильным развитием мышечных элементов","description":"во внутренней оболочке (t.intima) найти: эндотелий и рыхлую волокнистую соединительную ткань субдэндотелиального слоя с продольно ориентированными единичными гладкими миоцитами; клапан - складку интимы, содержащую толстые коллагеновые и эластические волокна, свободный край клапан","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/a_04.4.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/af_04.4.html","section":"a"},{"id":"af_06.1","title":"Сердце: эндокард и миокард","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2]","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/a_06.1.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/a_06.2.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/af_06.1.html","section":"a"},{"id":"af_06.3","title":"Сердце: миокард и эпикард","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2]","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/a_06.3.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/a_06.4.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/af_06.3.html","section":"a"},{"id":"af_06.5","title":"Сердце: клапаны","description":"поверхность клапана покрыта сосудистым эндотелием; основа клапана образована плотной волокнистой соединительной тканью, содержащей коллагеновые и эластические волокна и не имеющей кровеносных сосудов; основания клапанов прикреплены к фиброзным кольцам (содержат в основании участк","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/a_06.5.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/af_06.5.html","section":"a"},{"id":"bf_01.1","title":"Губа ребенка","description":"кожный отдел - образован кожей, покрытой многослойным плоским ороговевающим эпителием; содержит волосы, потовые и сальные железы; промежуточный отдел (красная кайма) - характеризуется утолщенным эпителием, в котором сохраняется тонкий прозрачный роговой слой; собственная пластинк","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_01.1.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_01.1.html","section":"b"},{"id":"bf_02.1","title":"Язык: кончик, сагиттальный срез<","description":"верхняя поверхность: покрыта слизистой оболочкой (многослойный плоский частично ороговевающий эпителий и собственная пластинка); содержит многочисленные мелкие нитевидные сосочки (имеют конусовидную форму и покрыты многослойным эпителием, тонкий роговой слой которого образует зао","staining":"сагиттальный срез, гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_02.1.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_02.1.html","section":"b"},{"id":"bf_02.2","title":"Язык: спинка","description":"Виртуальный микропрепарат [1] (гематоксилин-эозин) Виртуальный микропрепарат [2] (азан по Гейденгайну)","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_02.2.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_02.2a.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_02.2.html","section":"b"},{"id":"bf_02.3","title":"Язык: кончик, сагиттальный срез<","description":"в их основе лежит соединительная ткань собственной пластинки, вдающаяся в эпителий в виде первичных и отходящих от них вторичных соединительнотканных сосочков; в зависимости от формы выростов различают четыре основных вида сосочков: нитевидные (имеют форму заостренных выступов) [","staining":"гематоксилин-эозин, азан по Гейденгайну","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_02.3.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_02.3.html","section":"b"},{"id":"bf_03.1","title":"Твердое небо","description":"слизистая оболочка выстлана многослойным плоским ороговевающим эпителием, в который собственная пластинка формирует многочисленные сосочки; подслизистая основа содержит скопления жировой ткани, секреторные отделы слизистых небных слюнных желез и срастается с надкостницей.","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_03.1.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_03.1.html","section":"b"},{"id":"bf_03.2","title":"Мягкое небо","description":"ротоглоточная (передняя) часть - слизистая оболочка выстлана многослойным плоским неороговевающим эпителием, собственная пластинка формирует сосочки, подслизистая основа содержит секреторные отделы слизистых слюнных желез; волокнисто-мышечная основа образована пучками поперечнопо","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_03.2.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_03.2.html","section":"b"},{"id":"bf_04.1","title":"Формирование зубных зачатков: стадия \"шапочки\"","description":"многослойный эпителий ротовой полости зародыша, состоящий из крупных светлых клеток, соединяется узким эпителиальным тяжом (зубной пластинкой) с эпителиальным эмалевым (зубным) органом ; эмалевый орган представляет светлую двустенную чашу (колпачок), внутри которой эпителий имеет","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_04.1.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_04.1.html","section":"b"},{"id":"bf_04.2","title":"Формирование зубных зачатков: стадия \"колокольчика\"","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2]","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_04.2a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_04.2.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_04.2.html","section":"b"},{"id":"bf_04.4","title":"Формирование тканей зуба","description":"Виртуальный микропрепарат [1] (гематоксилин-эозин) Виртуальный микропрепарат [2] (азан по Гейденгайну)","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_04.4.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_04.4b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_04.4.html","section":"b"},{"id":"bf_04.5","title":"Зуб человека (срез после декальцинации)","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2]","staining":"срез после декальцинации, гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_04.5.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_04.5a.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_04.5.html","section":"b"},{"id":"bf_04.6","title":"Зуб человека: поддерживающий аппарат","description":"цемент - обызвествленная ткань зуба, покрывающая корень; подразделяется на: бесклеточный – первичный (располагается на поверхности корней зуба в области цементо-эмалевой границы); клеточный - вторичный (состоит из цементоцитов и цементобластов и обызвествленного межклеточного вещ","staining":"срез после декальцинации, гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_04.6.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_04.6.html","section":"b"},{"id":"bf_04.7","title":"Зуб человека (шлиф)","description":"Эмаль образована эмалевыми призмами и межпризменным веществом, покрыта кутикулой; Дентино-эмальное соединение Дентин представлен обызвествленным межклеточным веществом, пронизанным дентинными канальцами: Цемент - обызвествленная ткань зуба, сходная с грубоволокнистой костной ткан","staining":"шлиф","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_04.7.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_04.7.html","section":"b"},{"id":"bf_05.2","title":"Слюнные железы: околоушная","description":"Паренхима: серозные (белковые) концевые отделы образованы сероцитами - небольшими конусовидными клетками с базофильной цитоплазмой и центрально расположенным округлым ядром; миоэпителиоциты - уплощенные клетки, лежат между базальной мембраной и сероцитами на наружной поверхности ","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_05.2.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_05.2.html","section":"b"},{"id":"bf_05.3","title":"Слюнные железы: подчелюстная и подъязычная","description":"понижнедчелюстная слюнная железа - сложная альвеолярно-трубчатая разветвленная железа, содержит два вида концевых отделов - белковые (преобладают) и смешанные; подъязычная слюнная железа - сложная альвеолярно-трубчатая разветвленная железа, содержит преимущественно слизистые секр","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_05.3.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_05.3.html","section":"b"},{"id":"bf_06.1","title":"Небная миндалина","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2]","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_06.1a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_06.1.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_06.1.html","section":"b"},{"id":"bf_07.1","title":"Пищевод: верхний отдел","description":"Виртуальный микропрепарат [1] (поперечный срез) Виртуальный микропрепарат [2] (продольный срез)","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_07.1.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_07.1a.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_07.1.html","section":"b"},{"id":"bf_07.2","title":"Пищевод: нижний отдел","description":"слизистая оболочка формирует продольные складки, состоит из многослойного плоского неороговевающего эпителия, собственнй пластинкой слизистой, мышечной пластинкой слизистой, подслизистой основы; мышечная пластинка слизистой образована пучками гладких миоцитов (на препарате срезан","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_07.2.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_07.2.html","section":"b"},{"id":"bf_08.2","title":"Переход пищевода в желудок","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2]","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_08.2.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_08.2a.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_08.2.html","section":"b"},{"id":"bf_09.2","title":"Желудок: фундальный отдел","description":"Виртуальный микропрепарат [1] (гематоксилин-эозин) Виртуальный микропрепарат [2] (гематоксилин-ауранция)","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_09.2.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_09.2a.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_09.2.html","section":"b"},{"id":"bf_09.3","title":"Желудок: пилорический отдел","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2]","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_09.3.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_09.3a.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_09.3.html","section":"b"},{"id":"bf_10.1","title":"Двенадцатиперстная кишка","description":"рельеф слизистой оболочки: ворсинки (покрытые эпителием выпячивания собственной пластинки в просвет кишки) и крипты (трубчатые углубления эпителия в собственную пластинку на всю ее глубину); в эпителии, выстилающим ворсинки и крипты, видны многочисленные бокаловидные экзокриноцит","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_10.1.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_10.1.html","section":"b"},{"id":"bf_11.1","title":"Тощая кишка","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2]","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_11.1.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_11.1a.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_11.1.html","section":"b"},{"id":"bf_11.1b","title":"Ворсинка тощей кишки (ультраструктура)","description":"эпителиальная выстилка кишечной ворсинки образована столбчатыми (каемчатыми) и бокаловидными энтероцитами; многочисленные микроворсинки на апикальной поверхности столбчатых энтероцитов формируют щеточную каемку.","staining":"трансмиссионная электронная микроскопия, х30000","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_11.1b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_11.1b.html","section":"b"},{"id":"bf_11.3","title":"Толстая кишка","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2]","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_11.3.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_11.3a.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_11.3.html","section":"b"},{"id":"bf_11.4","title":"Тощая кишка","description":"рельеф слизистой оболочки: длинные узкие ворсинки (покрытые эпителием выпячивания собственной пластинки в просвет кишки) и крипты (трубчатые углубления эпителия в собственную пластинку на всю ее глубину); сгруппированные скопления лимфатических узелков (пейеровы бляшки) располага","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_11.4.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_11.4.html","section":"b"},{"id":"bf_11.6","title":"Червеобразный отросток","description":"слизистая оболочка выстлана призматическими, бокаловиными и малодифференцированными (в глубине крипт) эпителиоцитами; собственная пластинка слизистой содержит короткие крипты, а также многочисленные вторичные лимфатические узелки (В-зависимая зона) и межфолликулярные скопления ли","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_11.6.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_11.6.html","section":"b"},{"id":"bf_11.7","title":"Прямая кишка","description":"Ампула прямой кишки Слизистая оболочка сформирована кишечными криптами с многочисленными каемчатыми колоноцитами и бокаловидными клетками; мышечная пластинка — изначально двуслойная становится однослойной; Мышечная оболочка имеет внутренний циркулярный и наружный продольный слои;","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_11.7.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_11.7.html","section":"b"},{"id":"bf_12.1","title":"Печень человека","description":"Виртуальный микропрепарат [1] (азан по Гейденгайну) Виртуальный микропрепарат [2] (гематоксилин-эозин) Виртуальный микропрепарат [3] (гематоксилин-эозин)","staining":"азан по Гейденгайну","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_12.1.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_12.1a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_12.1b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_12.1.html","section":"b"},{"id":"bf_12.2","title":"Синусоидный капилляр печени (ультраструктура)","description":"синусоидные капилляры - участки печеночной дольки, в которых происходят обменные процессы между протекающей по ним кровью и гепатоцитами, высокая интенсивность обмена достигается увеличением поверхности гепатоцитов за счет многочисленных микроворсинок, контактирующих с плазмой кр","staining":"трансмиссионная электронная микроскопия, х5300","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_12.2.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_12.2.html","section":"b"},{"id":"bf_12.3","title":"Печень человека","description":"Виртуальный микропрепарат [1] (гематоксилин-эозин) Виртуальный микропрепарат [2] (пикрофуксин по Ван-Гизону)","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_12.3.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_12.3a.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_12.3.html","section":"b"},{"id":"bf_12.4","title":"Синусоидный капилляр печени (ультраструктура)","description":"располагаются между балками гепатоцитов и образуют анастомозирующую сеть, несущую кровь от периферии дольки к центру; получают смешанную венозно-артериальную кровь; до 80% ее объема поступает к дольке по междольковой вене (система воротной вены), от которой отходят вокругдольковы","staining":"инъекция сосудов берлинской лазурью - желатиной","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_12.4.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_12.4.html","section":"b"},{"id":"bf_13.1","title":"Желчный пузырь человека","description":"слизистая оболочка собрана в многочисленные складки и выстлана однослойным призматическим эпителием, поверхность слизистой покрыта фибриллярными и зернистыми структурами - так выглядит желчь при гистологической обработке; собственная пластинка слизистой образована рыхлой соединит","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_13.1.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_13.1.html","section":"b"},{"id":"bf_14.1","title":"Поджелудочная железа человека","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2]","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_14.1.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_14.1a.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_14.1.html","section":"b"},{"id":"bf_14.2","title":"Ацинус поджелудочной железы (ультраструктура)","description":"секреторные экзокринные отделы поджелудочной железы (ацинусы) выстланы однослойным железистым эпителием - ациноцитами (панкреатоцитами); базальная часть ациноцитов содержит хорошо развитую гранулярную эндоплазматическую сеть (при световой микроскопии соответствует базофильной гом","staining":"трансмиссионная электронная микроскопия, x13500","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/b_14.2.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/bf_14.2.html","section":"b"},{"id":"cf_01.1","title":"Периферический нерв","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2]","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/c_01.1a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/c_01.1b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/cf_01.1.html","section":"c"},{"id":"cf_01.2","title":"Периферический нерв","description":"состоит из нескольких пучков (стволов) нервных волокон разного диаметра; каждый ствол окружен плотной соединительнотканной оболочкой (периневрий) и содержит многочисленные миелиновые нервные волокна, разделенные тонкими прослойками соединительной ткани (эндоневрий) ; нерв (все пу","staining":"азан по Гейденгайну","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/c_01.2.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/cf_01.2.html","section":"c"},{"id":"cf_03.1","title":"Спинномозговой узел","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2]","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/c_03.1a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/c_03.1b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/cf_03.1.html","section":"c"},{"id":"cf_03.2","title":"Спинномозговой узел","description":"Виртуальный микропрепарат [1] (гематоксилин-эозин) Виртуальный микропрепарат [2] (импрегнация солями серебра)","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/c_03.2a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/c_03.2b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/cf_03.2.html","section":"c"},{"id":"cf_03.3","title":"Спинномозговой узел","description":"мелкие ганглии, диффузно разбросанные в толще внутренних органов (интрамурально) или на их поверхности; реализуют физиологические эффекты, противоположные симпатическим (снижение тонуса сосудов и работы сердца, ослабление дыхания, замедление энергопродукции, усиление деятельность","staining":"азан по Гейденгайну","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/c_03.3.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/cf_03.3.html","section":"c"},{"id":"cf_03.4","title":"Спинномозговой узел","description":"комплекс микроганглионарных образований (интрамуральных ганглиев), соединяющих их нервов, а также отдельные нейроны и их отростки, расположенные в стенках полых внутренних органов; обладают собственным моторным автоматизмом; характеризуется высокой степенью относительной независи","staining":"","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/c_03.4.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/cf_03.4.html","section":"c"},{"id":"cf_05.1","title":"Спинной мозг","description":"Виртуальный микропрепарат [1] (импрегнация солями серебра) Виртуальный микропрепарат [2] (азан по Гейденгайну)","staining":"импрегнация солями серебра","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/c_05.1a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/c_05.1b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/cf_05.1.html","section":"c"},{"id":"cf_06.1","title":"Мозжечок","description":"Виртуальный микропрепарат [1] (азан по Гейденгайну) Виртуальный микропрепарат [2] (гематоксилин-эозин) Виртуальный микропрепарат [3] (импрегнация солями серебра)","staining":"азан по Гейденгайну","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/c_06.1a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/c_06.1b.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/c_06.1c.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/cf_06.1.html","section":"c"},{"id":"cf_07.3","title":"Кора полушарий большого мозга","description":"Виртуальный микропрепарат [1] (окраска по Нисслю) Виртуальный микропрепарат [2] (окраска по Нисслю) Виртуальный микропрепарат [3] (импрегнация солями серебра)","staining":"окраска по Нисслю","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/c_07.1a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/c_07.1b.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/c_07.1c.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/cf_07.3.html","section":"c"},{"id":"df_01.1","title":"Орган зрения: меридиональное сечени","description":"глазное яблоко : роговица, склера, цилиарное тело, хрусталик, сетчатка, передняя и задняя камеры глаза; вспомогательный аппарат глаза : веки, слезные железы, глазодвигательные мышцы.","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/d_01.1.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/df_01.1.html","section":"d"},{"id":"df_01.3","title":"Орган зрения: меридиональное сечени","description":"роговица переходит в склеру в области лимба, на внутренней поверхности которого находится венозный синус (шлеммов канал); ресничное (цилиарное) тело представлено цилиарной мышцей и цилиарными (ресничными) отростками ; от ресничных отростков, а также плоской части ресничного тела ","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/d_01.3.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/df_01.3.html","section":"d"},{"id":"df_01.4","title":"Орган зрения: меридиональное сечени","description":"Виртуальный микропрепарат [1] (азан по Гейденгайну) Виртуальный микропрепарат [2] (гематоксилин-эозин)","staining":"азан по Гейденгайну","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/d_01.4a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/d_01.4b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/df_01.4.html","section":"d"},{"id":"df_01.5","title":"Орган зрения: меридиональное сечени","description":"ресничное (цилиарное тело) - продолжение собственно сосудистой оболочки (прилежит изнутри к склере и содержит кровеносные сосуды и скопления пигментных клеток): покрыто ресничным эпителием (двухслойный кубический), представлено цилиарной мышцей (гладкие миоциты) и цилиарными отро","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/d_01.5.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/df_01.5.html","section":"d"},{"id":"df_01.6","title":"Орган зрения: задний полюс глаза","description":"фиброзную, сосудистую и сетчатую оболочки, в составе сетчатки - слепое пятно (место выхода зрительного нерва) [1] и область центральной ямки (желтое пятно) [2].","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/d_01.6a.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/df_01.6.html","section":"d"},{"id":"df_01.7","title":"Орган зрения: меридиональное сечени","description":"образован кубическими эпителиальными клетками (пигментоцитами) с базально смещенным ядром и заполненной гранулами меланина цитоплазмой; на апикальной поверхности пигментоцитов располагаются длинные ветвящиеся отростки, проникающие в слой палочек и колбочек (фотосенсорный слой) ме","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/d_01.7.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/df_01.7.html","section":"d"},{"id":"df_02.1","title":"Орган зрения: меридиональное сечени","description":"ушная раковина (в срезе отсутствует); наружный слуховой проход - выстлан кожей, содержащей волосяные фолликулы, сальные и серные железы; стенку образует эластический хрящ; барабанная перепонка - отделяет наружный слуховой проход от среднего уха: снаружи образована многослойным пл","staining":"подробное описание - см. микропрепарат d_02.3 - Орган слуха: улитка","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/d_02.1.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/df_02.1.html","section":"d"},{"id":"df_02.2","title":"Орган слуха","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2]","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/d_02.2a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/d_02.2b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/df_02.2.html","section":"d"},{"id":"df_03.1","title":"Орган слуха","description":"Ампулярный гребешок и пятно маточки Макула мешочка и полукружные каналы","staining":"гематоксилин-эозин","vm_links":[{"label":"Ампулярный гребешок","url":"https://hist.yma.ac.ru/organs/files/d_03.1.html"},{"label":"Макула мешочка","url":"https://hist.yma.ac.ru/organs/files/d_02.1.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/df_03.1.html","section":"d"},{"id":"df_04.1","title":"Орган вкуса","description":"имеют эллипсоидную форму и занимают всю толщину эпителиального пласта; вершина луковицы сообщается с поверхностью языка вкусовой порой ; вкусовую луковицу образуют: вкусовые сенсоэпителиальные клетки со светлым ядром округлой или овальной формы, их апикальная поверхность с рецепт","staining":"азан по Гейденгайну","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/d_04.1.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/df_04.1.html","section":"d"},{"id":"df_05.1","title":"Орган вкуса","description":"эпителий высокий однослойный многорядный призматический, не содержит бокаловидных клеток; представлен тремя типами клеток: поддерживающие - высокие призматические клетки, ядра формируют наружный ряд; базальные - мелкие малодифференцированные клетки, ядра формируют внутренний ряд ","staining":"азан по Гейденгайну","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/d_05.1.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/df_05.1.html","section":"d"},{"id":"ef_01.1","title":"Гипоталамус: нейросекреторные клетки","description":"","staining":"альдегид-фуксин по Гомори","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/e_01.1.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/ef_01.1.html","section":"e"},{"id":"ef_02.1","title":"Гипофиз","description":"передняя доля образована тяжами (трабекулами) эндокринных эпителиальных клеток (аденоцитов), окруженных густой сетью синусоидных капилляров; задняя доля содержит тонкие нервные волокна, клетки нейроглии (питуициты) и мелкие сосуды; промежуточная доля у человека слабо развита и со","staining":"азан по Гейденгайну","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/e_02.1.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/ef_02.1.html","section":"e"},{"id":"ef_02.2","title":"Гипофиз","description":"передняя доля образована тяжами (трабекулами) эндокринных эпителиальных клеток (аденоцитов), окруженных густой сетью синусоидных капилляров; промежуточная доля слабо развита и состоит из узких тяжей железистых базофильных и хромофобных клеток и фолликулярных структур, заполненных","staining":"паральдегид-фуксин по Гомори","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/e_02.2.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/ef_02.2.html","section":"e"},{"id":"ef_03.1","title":"Гипофиз","description":"паренхима содержит пинеалоциты (специализированные нейроэндокринные клетки) и интерстициальные клетки - видоизмененные фиброзные астроциты (имеют удлиненные плотные ядра, выполняют опорную функцию); с возрастом в паренхиме формируются конкреции (мозговой песок) — расположенные ме","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/e_03.1.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/ef_03.1.html","section":"e"},{"id":"ef_04.1","title":"Щитовидная железа","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2] (гематоксилин-эозин) С-клетки щитовидной железы [3] (импрегнация серебром по Сивиру-Мангеру, гематоксилин)","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/e_04.1a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/e_04.1b.html"},{"label":"С-клетки щитовидной железы","url":"https://hist.yma.ac.ru/organs/files/e_04.1c.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/ef_04.1.html","section":"e"},{"id":"ef_05.1","title":"Околощитовиднная железа","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2]","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/e_05.1a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/e_05.1b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/ef_05.1.html","section":"e"},{"id":"ef_06.1","title":"Надпочечник","description":"Надпочечник человека [1] (гематоксилин-эозин) Надпочечник собаки [2] (гематоксилин-эозин) Эндокриноциты мозгового вещества [3] (окр. по Хоноре)","staining":"гематоксилин-эозин","vm_links":[{"label":"Надпочечник человека","url":"https://hist.yma.ac.ru/organs/files/e_06.1a.html"},{"label":"Надпочечник собаки","url":"https://hist.yma.ac.ru/organs/files/e_06.1b.html"},{"label":"Эндокриноциты мозгового вещества","url":"https://hist.yma.ac.ru/organs/files/e_06.1c.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/ef_06.1.html","section":"e"},{"id":"ef_07.1","title":"Гипофиз","description":"содержится в секреторных гранулах эндокриноцитов, продуцирующих пептидные гормоны и биогенные амины; считается одним из специфических маркеров клеток ДЭС; в эпителии пилорических желез присутствуют позитивно окрашенные одиночные эндокриноциты (коричневые): закрытого типа - отделе","staining":"антитела к хромогранину А","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/e_07.1.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/ef_07.1.html","section":"e"},{"id":"ff_01.1","title":"Трахея","description":"Преддверие носа Дыхательная часть (новорожденный ребенок)","staining":"гематоксилин-эозин","vm_links":[{"label":"Преддверие  носа","url":"https://hist.yma.ac.ru/organs/files/f_01.1a.html"},{"label":"Дыхательная часть","url":"https://hist.yma.ac.ru/organs/files/f_01.1b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/ff_01.1.html","section":"f"},{"id":"ff_03.1","title":"Трахея","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2]","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/f_03.1a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/f_03.1b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/ff_03.1.html","section":"f"},{"id":"ff_04.1","title":"Легкое","description":"Виртуальный микропрепарат [1] (гематоксилин-эозин) Виртуальный микропрепарат [2] (азан по Гейденгайну)","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/f_04.1a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/f_04.1b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/ff_04.1.html","section":"f"},{"id":"ff_04.2","title":"Аэрогематический барьер (ультраструктура)","description":"альвеолы - участки респираторного отдела легких, осуществляющие газообмен между кровью, протекающей по капиллярам межальвеолярных перегородок и воздухом в просвете альвеол; аэрогематический барьер - совокупность структур, через которые происходит газообмен.","staining":"трансмиссионная электронная микроскопия, х30000","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/f_04.2.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/ff_04.2.html","section":"f"},{"id":"ff_04.3","title":"Аэрогематический барьер (ультраструктура)","description":"альвеолы - участки респираторного отдела легких, осуществляющие газообмен между кровью, протекающей по капиллярам межальвеолярных перегородок и воздухом в просвете альвеол .","staining":"трансмиссионная электронная микроскопия, х2100","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/f_04.3.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/ff_04.3.html","section":"f"},{"id":"gf_01.1","title":"Толстая кожа","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2]","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/g_01.1a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/g_01.1b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/gf_01.1.html","section":"g"},{"id":"gf_01.2","title":"Толстая кожа","description":"Свободные неинкапсулированные нервные окончания в сосочковом слое дермы представлены терминальными ветвлениями дендритов чувствительных нейронов спинномозговых узлов [1]. Несвободные инкапсулированные нервные окончания локализованы в соединительнотканной основе кожи (дерме) и пре","staining":"гематоксилин-эозин, импрегнация солями серебра","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/g_01.2.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/gf_01.2.html","section":"g"},{"id":"gf_01.3","title":"Толстая кожа","description":"Ногти - плотные роговые структуры на тыльной поверхности концевых фаланг пальцев, состоящие из ногтевой пластинки и ногтевого ложа: ногтевая пластинка состоит из твердого кератина и соответствует роговому слою эпидермиса; ногтевое ложе - пласт из несколько слоев эпидермальных кле","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/g_01.3.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/gf_01.3.html","section":"g"},{"id":"gf_02.1","title":"Тонкая кожа","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2]","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/g_02.1a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/g_02.1b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/gf_02.1.html","section":"g"},{"id":"gf_02.2","title":"Толстая кожа","description":"Вокруг черных частиц туши, введенных в толщу сетчатого слоя дермы, по окончании асептического воспаления формируются тонкие соединительнотканные оболочки.","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/g_02.2.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/gf_02.2.html","section":"g"},{"id":"gf_03.1","title":"Нелактирующая молочная железа","description":"Нелактирующая железа Сосок нелактирующей железы Лактирующая железа","staining":"гематоксилин-эозин","vm_links":[{"label":"Нелактирующая железа","url":"https://hist.yma.ac.ru/organs/files/g_03.1a.html"},{"label":"Сосок","url":"https://hist.yma.ac.ru/organs/files/g_03.1c.html"},{"label":"Лактирующая железа","url":"https://hist.yma.ac.ru/organs/files/g_03.1b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/gf_03.1.html","section":"g"},{"id":"hf_01.1","title":"Красный костный мозг","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2]","staining":"гистологический срез, гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/h_01.1a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/h_01.1b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/hf_01.1.html","section":"h"},{"id":"hf_01.2","title":"Мазок красного костного мозга","description":"Эритропоэз и тромбоцитопоэз Лифоцитопоэз и моноцитопоэз Гранулоцитопоэз","staining":"","vm_links":[{"label":"Эритропоэз и тромбоцитопоэз","url":"https://hist.yma.ac.ru/organs/files/stem_12b.html"},{"label":"Лифоцитопоэз и моноцитопоэз","url":"https://hist.yma.ac.ru/organs/files/stem_13b.html"},{"label":"Гранулоцитопоэз","url":"https://hist.yma.ac.ru/organs/files/stem_14b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/hf_01.2.html","section":"h"},{"id":"hf_03.1","title":"Тимус ребенка","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2]","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/h_03.1a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/h_03.1b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/hf_03.1.html","section":"h"},{"id":"hf_03.2","title":"hf_03.2","description":"Возрастная инволюция Акцидентальная инволюция","staining":"гематоксилин-эозин","vm_links":[{"label":"Возрастная инволюция","url":"https://hist.yma.ac.ru/organs/files/h_03.2a.html"},{"label":"Акцидентальная инволюция","url":"https://hist.yma.ac.ru/organs/files/h_03.2b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/hf_03.2.html","section":"h"},{"id":"hf_03.3","title":"Гематотимусный барьер (ультраструктура)","description":"1 - эритроцит в просвете гемокапилляра, 2 - цитоплазма эндотелиоцита, 3 - базальная мембрана капилляра, 4 - перицит, 5 - базальная мембрана эпителиоретикулоцита, 6 - эпителиоретикулоцит, 7 - тимоциты (Т-лимфоциты).","staining":"трансмиссионная электронная микроскопия, х18000","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/h_03.3.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/hf_03.3.html","section":"h"},{"id":"hf_04.1","title":"Лимфатический узел","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2] (гематоксилин-эозин) Ретикулярная ткань лимфатического узла [3] (импрегнация солями серебра)","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/h_04.1a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/h_04.1b.html"},{"label":"Ретикулярная ткань","url":"https://hist.yma.ac.ru/organs/files/h_04.1c.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/hf_04.1.html","section":"h"},{"id":"hf_05.1","title":"Селезенка","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2] Строение красной пульпы [3]","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/h_05.1a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/h_05.1b.html"},{"label":"Строение красной пульпы","url":"https://hist.yma.ac.ru/organs/files/h_05.1c.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/hf_05.1.html","section":"h"},{"id":"hf_06.1","title":"Лимфоидная ткань, ассоциированная с поверхностью","description":"Сгруппированные (агрегированные) лимфоидные узелки (пейеровы бляшки)","staining":"гематоксилин-эозин","vm_links":[{"label":"Сгруппированные (агрегированные)","url":"https://hist.yma.ac.ru/organs/files/h_06.1b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/hf_06.1.html","section":"h"},{"id":"if_01.1","title":"Почка человека","description":"Виртуальный микропрепарат [1] (гематоксилин-эозин) Виртуальный микропрепарат [2] (азан по Гейденгайну ) Виртуальный микропрепарат [3] (азан по Гейденгайну ) Юкстагломерулярный аппарат [4] (гематоксилин-эозин)","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/i_01.1a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/i_01.1.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/i_01.1b.html"},{"label":"Юкстагломерулярный аппарат","url":"https://hist.yma.ac.ru/organs/files/i_01.1c.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/if_01.1.html","section":"i"},{"id":"if_01.2","title":"Толстая кожа","description":"в головной части - глазное яблоко и головной мозг (мозговые пузыри); в туловищной части - крупная печень с многочисленными очагами кроветворения, сердце (\"трабекулярный\" миокард), легкие (железистая стадия); в каудальной части - первичная почка (mesonephros)[1] с закладкой гонад ","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/i_01.2.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/if_01.2.html","section":"i"},{"id":"if_01.3","title":"Толстая кожа","description":"дуговые артерии (идут вдоль кортико-медуллярной границы) и междольковые артерии , отходящие радиально от них в корковое вещество; последние дают начало приносящим артериолам , распадающимся на капилляры клубочка почечных телец, которые сливаются в выносящие артериолы; в корковых ","staining":"инъекция красителя в сосудистое русло","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/i_01.3.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/if_01.3.html","section":"i"},{"id":"if_01.4","title":"Фильтрационный барьер (ультраструктура)","description":"","staining":"трансмиссионная электронная микроскопия, х29500","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/i_01.4.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/if_01.4.html","section":"i"},{"id":"if_02.1","title":"Мочеточник","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2]","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/i_02.1a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/i_02.1b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/if_02.1.html","section":"i"},{"id":"if_03.1","title":"Мочевой пузырь","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2]","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/i_03.1a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/i_03.1b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/if_03.1.html","section":"i"},{"id":"jf_01.1","title":"Яичко млекопитающего","description":"Млекопитающее (азан по Гейденгайну) Человек (гематоксилин-эозин)","staining":"азан по Гейденгайну","vm_links":[{"label":"Млекопитающее","url":"https://hist.yma.ac.ru/organs/files/j_01.1a.html"},{"label":"Человек","url":"https://hist.yma.ac.ru/organs/files/j_01.1b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/jf_01.1.html","section":"j"},{"id":"jf_01.2","title":"Придаток яичка млекопитающего","description":"Виртуальный микропрепарат (разметка структур - см. \"Ключевые точки\" в выпадающем меню в правом верхнем углу микропрепарата)","staining":"гематоксилин-эозин, азан по Гейденгайну","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/j_01.2.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/jf_01.2.html","section":"j"},{"id":"jf_02.1","title":"Семявыносящий проток млекопитающего","description":"имеет вид толстостенной трубки с узким просветом и продольными складками, выстланной двухрядным эпителием ; мышечная оболочка образована внутренним циркулярным и наружным продольным слоями гладких миоцитов.","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/j_02.1.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/jf_02.1.html","section":"j"},{"id":"jf_03.1","title":"Семявыносящий проток млекопитающего","description":"cлизистая оболочка : образует многочисленные ветвящиеся складки и гребни; выстлана однослойным (многорядным) призматическим эпителием, содержит высокие клетки с секреторными гранулами и базальные клетки; собственная пластинка образована рыхлой соединительной тканью; мышечная обол","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/j_03.1.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/jf_03.1.html","section":"j"},{"id":"jf_04.1","title":"jf_04.1","description":"Простата щенка [1] (гематоксилин-эозин) Мышечно-эластическая строма [2] (окр. по Маллори)","staining":"гематоксилин-эозин","vm_links":[{"label":"Простата щенка","url":"https://hist.yma.ac.ru/organs/files/j_04.1a.html"},{"label":"Мышечно-эластическая строма","url":"https://hist.yma.ac.ru/organs/files/j_04.1b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/jf_04.1.html","section":"j"},{"id":"jf_04.2","title":"Простата человека зрелого возрастов","description":"железистые элементы количественно преобладают над стромальными, хорошо развиты альвеолярно-трубчатые простатические железы , представленные сильно ветвящимися концевыми отделами и выводными протоками ; секреторные отделы выстланы однослойным кубическим/призматическим эпителием, в","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/j_04.3.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/jf_04.2.html","section":"j"},{"id":"jf_05.1","title":"Семявыносящий проток млекопитающего","description":"Пещеристые тела: снаружи окружены белочной оболочкой — капсулой из плотной соединительной ткани, с высоким содержанием эластических волокон и гладких миоцитов; представлены губчатой системой, состоящей из трабекул и каверн (пещеристых синусов): трабекулы образованы плотной соедин","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/j_05.1.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/jf_05.1.html","section":"j"},{"id":"kf_01.1","title":"Яичник млекопитающего","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2]","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/k_01.1a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/k_01.1b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/kf_01.1.html","section":"k"},{"id":"kf_01.2","title":"Яичник с желтым телом","description":"мезотелий и белочную оболочку , широкое корковое вещество : содержит многочисленные фолликулы на разных стадиях роста, желтое тело , окруженное соединительнотканной оболочкой (крупные клетки округлой или полигональной формы с ячеистой цитоплазмой, каждая лютеиновая клетка контакт","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/k_01.2.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/kf_01.2.html","section":"k"},{"id":"kf_02.1","title":"Маточная труба женщины","description":"Виртуальный микропрепарат [1] Виртуальный микропрепарат [2]","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/k_02.1a.html"},{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/k_02.1b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/kf_02.1.html","section":"k"},{"id":"kf_04.1","title":"Матка женщины: фаза секреции","description":"эндометрий хорошо выражен (за счет развития функционального слоя ), выстлан однослойным призматическим эпителием; маточные железы имеют извитой вид, их просвет мешковидно растянут заполненным секретом (окрашен оксифильно); соединительнотканная строма рыхлая, содержит многочисленн","staining":"гематоксилин-эозин","vm_links":[{"label":"Фаза секреции","url":"https://hist.yma.ac.ru/organs/files/k_04.1a.html"},{"label":"Фаза десквамации","url":"https://hist.yma.ac.ru/organs/files/k_04.1b.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/kf_04.1.html","section":"k"},{"id":"kf_04.2","title":"Придаток яичка млекопитающего","description":"в составе шейки матки выделяют внутреннюю (надвлагалищную) и наружную (влагалищную) части, граница их находится в области наружного зева; образована тремя оболочками: слизистой оболочкой, миометрием и периметрием; слизистая оболочка: формирует специфический внутренний рельеф церв","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/k_04.2.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/kf_04.2.html","section":"k"},{"id":"kf_04.3","title":"Придаток яичка млекопитающего","description":"в составе шейки матки выделяют внутреннюю (надвлагалищную) и наружную (влагалищную) части, граница их находится в области наружного зева; образована тремя оболочками: слизистой оболочкой, миометрием и периметрием; слизистая оболочка: выстлана многослойным плоским неороговевающим ","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/k_04.3.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/kf_04.3.html","section":"k"},{"id":"lf_05.1","title":"Плацента человека (плодная часть)","description":"Виртуальный микропрепарат (гематоксилин-эозин)","staining":"гематоксилин-эозин","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/l_05.1.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/lf_05.1.html","section":"l"},{"id":"lf_05.2","title":"Плацентарный барьер (ультраструктура)","description":"Виртуальный микропрепарат (трансмиссионная электронная микроскопия, х2100)","staining":"трансмиссионная электронная микроскопия, х2100","vm_links":[{"label":"Виртуальный микропрепарат","url":"https://hist.yma.ac.ru/organs/files/l_05.2.html"}],"source_url":"https://hist.yma.ac.ru/organs/frame/lf_05.2.html","section":"l"}];
+
+// ═══════════════════════════════════════════════
+//  ICE & BROKER
+// ═══════════════════════════════════════════════
+const ICE={iceServers:[
+  {urls:'stun:stun.l.google.com:19302'},
+  {urls:'stun:stun1.l.google.com:19302'},
+  {urls:'stun:stun2.l.google.com:19302'},
+  {urls:'stun:stun.cloudflare.com:3478'},
+  {urls:'turn:openrelay.metered.ca:80',username:'openrelayproject',credential:'openrelayproject'},
+  {urls:'turn:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'},
+  {urls:'turn:openrelay.metered.ca:443?transport=tcp',username:'openrelayproject',credential:'openrelayproject'}
+],iceCandidatePoolSize:8};
+const BROKERS=[{host:'0.peerjs.com',port:443,path:'/',secure:true},null];
+let brokerI=0;
+
+// ═══════════════════════════════════════════════
+//  ZOOM/PAN STATE
+//  We use CSS zoom (not transform:scale) — full quality
+//  Base iframe size = 1600×1100px, zoomed by CSS zoom factor
+//  Pan = scrollLeft / scrollTop of #vp
+// ═══════════════════════════════════════════════
+const BASE_W = 1600;
+const BASE_H = 1100;
+let zoomLevel = 1.0;      // CSS zoom multiplier
+const MIN_Z = 0.25, MAX_Z = 4.0;
+
+// Elements
+const vp    = document.getElementById('vp');
+const inner = document.getElementById('inner');
+const fr    = document.getElementById('fr');
+const dlCv  = document.getElementById('dl');
+const dctx  = dlCv.getContext('2d');
+const ov    = document.getElementById('ov');
+
+// Set base dimensions
+function applyZoom() {
+  const w = Math.round(BASE_W * zoomLevel);
+  const h = Math.round(BASE_H * zoomLevel);
+  // CSS zoom on #inner: browser re-renders iframe at full quality
+  inner.style.width  = BASE_W + 'px';
+  inner.style.height = BASE_H + 'px';
+  inner.style.zoom   = zoomLevel;
+  // Canvas resolution must match BASE (world coords)
+  // css size = BASE * zoom, but canvas px stay BASE
+  dlCv.width  = BASE_W;
+  dlCv.height = BASE_H;
+  dlCv.style.width  = BASE_W + 'px';
+  dlCv.style.height = BASE_H + 'px';
+  ov.style.width  = BASE_W + 'px';
+  ov.style.height = BASE_H + 'px';
+  document.getElementById('zl').textContent = Math.round(zoomLevel*100) + '%';
+  replay();
+}
+
+function resetZoom() {
+  // Fit to viewport
+  const vw = vp.clientWidth, vh = vp.clientHeight;
+  zoomLevel = Math.min(vw/BASE_W, vh/BASE_H) * 0.97;
+  zoomLevel = Math.max(MIN_Z, Math.min(MAX_Z, zoomLevel));
+  applyZoom();
+  // Center
+  const zw = BASE_W*zoomLevel, zh = BASE_H*zoomLevel;
+  vp.scrollLeft = Math.max(0, (zw-vw)/2);
+  vp.scrollTop  = Math.max(0, (zh-vh)/2);
+}
+setTimeout(resetZoom, 100);
+window.addEventListener('resize', () => applyZoom());
+
+// ── Coordinate helpers ──────────────────────────
+// Given a mouse event on #ov → world coords (0..1)
+function evToWorld(e) {
+  const r = ov.getBoundingClientRect();
+  // r.left/top already account for zoom + scroll because ov is inside #inner
+  // BUT clientX/Y are viewport pixels, r is also viewport pixels
+  // Since CSS zoom scales the rendered output, getBoundingClientRect already
+  // gives us zoomed coordinates, so dividing by BASE gives world coords
+  const ox = (e.clientX - r.left) / (r.width);   // 0..1
+  const oy = (e.clientY - r.top)  / (r.height);
+  return {x: ox, y: oy};
+}
+// World (0..1) → fixed screen position (for remote cursor)
+function worldToScreen(wx, wy) {
+  const r = inner.getBoundingClientRect();
+  return {
+    x: r.left + wx * r.width,
+    y: r.top  + wy * r.height
+  };
+}
+
+// ═══════════════════════════════════════════════
+//  ZOOM (centered on mouse/viewport-center)
+// ═══════════════════════════════════════════════
+function zoomAt(clientX, clientY, factor) {
+  const oldZ = zoomLevel;
+  const newZ = Math.max(MIN_Z, Math.min(MAX_Z, oldZ * factor));
+  if (newZ === oldZ) return;
+
+  // Where is the point in the inner div (before zoom change)?
+  const r = inner.getBoundingClientRect();
+  const px = clientX - r.left;  // px relative to inner (zoomed)
+  const py = clientY - r.top;
+  // Fraction of inner
+  const fx = px / r.width;
+  const fy = py / r.height;
+
+  zoomLevel = newZ;
+  applyZoom();
+
+  // After zoom: same fraction should be under mouse
+  const newW = BASE_W * newZ;
+  const newH = BASE_H * newZ;
+  const vpRect = vp.getBoundingClientRect();
+  const targetScrollX = fx * newW - (clientX - vpRect.left);
+  const targetScrollY = fy * newH - (clientY - vpRect.top);
+  vp.scrollLeft = Math.max(0, targetScrollX);
+  vp.scrollTop  = Math.max(0, targetScrollY);
+
+  sendView();
+}
+
+document.getElementById('tZI').onclick = () => zoomAt(vp.getBoundingClientRect().left + vp.clientWidth/2, vp.getBoundingClientRect().top + vp.clientHeight/2, 1.3);
+document.getElementById('tZO').onclick = () => zoomAt(vp.getBoundingClientRect().left + vp.clientWidth/2, vp.getBoundingClientRect().top + vp.clientHeight/2, 1/1.3);
+document.getElementById('tZR').onclick = () => { resetZoom(); sendView(); };
+
+// Wheel zoom
+ov.addEventListener('wheel', e => {
+  e.preventDefault();
+  const factor = e.deltaY < 0 ? 1.12 : 1/1.12;
+  zoomAt(e.clientX, e.clientY, factor);
+}, {passive:false});
+vp.addEventListener('wheel', e => {
+  if (e.ctrlKey) { e.preventDefault(); const f=e.deltaY<0?1.12:1/1.12; zoomAt(e.clientX,e.clientY,f); }
+}, {passive:false});
+
+// Keyboard
+document.addEventListener('keydown', e => {
+  if (e.target.closest('input,textarea')) return;
+  if (e.key==='+' || e.key==='=') { const c=vp.getBoundingClientRect(); zoomAt(c.left+vp.clientWidth/2,c.top+vp.clientHeight/2,1.25); }
+  if (e.key==='-') { const c=vp.getBoundingClientRect(); zoomAt(c.left+vp.clientWidth/2,c.top+vp.clientHeight/2,1/1.25); }
+  if (e.code==='Space') { e.preventDefault(); ov.style.cursor='grabbing'; }
+});
+document.addEventListener('keyup', e => {
+  if (e.code==='Space') setToolCursor();
+});
+
+// ═══════════════════════════════════════════════
+//  PAN via middle-mouse or space+drag
+// ═══════════════════════════════════════════════
+let panDrag = null;
+let spaceDown = false;
+
+document.addEventListener('keydown', e => { if(e.code==='Space'&&!e.target.closest('input,textarea')){spaceDown=true;} });
+document.addEventListener('keyup',   e => { if(e.code==='Space'){spaceDown=false;setToolCursor();} });
+
+ov.addEventListener('mousedown', e => {
+  if (tool === 'pan' || spaceDown || e.button === 1) {
+    panDrag = { sx: e.clientX, sy: e.clientY, sl: vp.scrollLeft, st: vp.scrollTop };
+    vp.classList.add('dragging'); ov.style.cursor='grabbing';
+    e.preventDefault(); return;
+  }
+  // Draw
+  startDraw(evToWorld(e));
+});
+
+ov.addEventListener('mousemove', e => {
+  // My cursor dot
+  const md = document.getElementById('md');
+  md.style.display=''; md.style.left=e.clientX+'px'; md.style.top=e.clientY+'px';
+  md.style.background=color;
+
+  if (panDrag) {
+    vp.scrollLeft = panDrag.sl - (e.clientX - panDrag.sx);
+    vp.scrollTop  = panDrag.st - (e.clientY - panDrag.sy);
+    const n=Date.now(); if(n-svThr>80){svThr=n;sendView();}
+    return;
+  }
+  const n=Date.now();
+  if(connected&&n-curThr>40){curThr=n;const w=evToWorld(e);send({t:'cursor',wx:w.x,wy:w.y});}
+  continueDraw(evToWorld(e));
+});
+
+ov.addEventListener('mouseup', e => {
+  if(panDrag){panDrag=null;vp.classList.remove('dragging');setToolCursor();sendView();return;}
+  endDraw();
+});
+ov.addEventListener('mouseleave', e => {
+  if(panDrag){panDrag=null;vp.classList.remove('dragging');setToolCursor();sendView();}
+  endDraw();
+  document.getElementById('md').style.display='none';
+});
+
+// Scroll → sync view
+vp.addEventListener('scroll', () => {
+  const n=Date.now(); if(n-svThr>80){svThr=n;sendView();}
+});
+
+// ── Touch ──────────────────────────────────────
+let touch1=null, touch2=null, lastPinch=null;
+
+ov.addEventListener('touchstart', e => {
+  e.preventDefault();
+  if(e.touches.length===1){
+    const t=e.touches[0];
+    if(tool==='pan'||spaceDown){
+      panDrag={sx:t.clientX,sy:t.clientY,sl:vp.scrollLeft,st:vp.scrollTop};
+    } else {
+      startDraw(evToWorld(t));
+    }
+  }
+  if(e.touches.length===2){
+    panDrag=null; endDraw();
+    lastPinch=null;
+    touch1=e.touches[0]; touch2=e.touches[1];
+  }
+},{passive:false});
+
+ov.addEventListener('touchmove', e=>{
+  e.preventDefault();
+  if(e.touches.length===2){
+    const a=e.touches[0],b=e.touches[1];
+    const dist=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
+    if(lastPinch){
+      const cx=(a.clientX+b.clientX)/2, cy=(a.clientY+b.clientY)/2;
+      zoomAt(cx,cy,dist/lastPinch);
+    }
+    lastPinch=dist; return;
+  }
+  lastPinch=null;
+  const t=e.touches[0];
+  if(panDrag){vp.scrollLeft=panDrag.sl-(t.clientX-panDrag.sx);vp.scrollTop=panDrag.st-(t.clientY-panDrag.sy);return;}
+  continueDraw(evToWorld(t));
+},{passive:false});
+
+ov.addEventListener('touchend', e=>{
+  lastPinch=null;
+  if(e.touches.length===0){panDrag=null;endDraw();sendView();}
+},{passive:false});
+
+// ═══════════════════════════════════════════════
+//  SEND VIEW STATE
+// ═══════════════════════════════════════════════
+let svThr=0,curThr=0;
+function sendView(){
+  if(!connected)return;
+  send({t:'view',z:zoomLevel,sl:vp.scrollLeft,st:vp.scrollTop});
+}
+function applyRemoteView(d){
+  zoomLevel=d.z; applyZoom();
+  vp.scrollLeft=d.sl; vp.scrollTop=d.st;
+}
+
+// ═══════════════════════════════════════════════
+//  DRAWING
+//  Strokes in world coords (0..1)
+//  Canvas is BASE_W × BASE_H absolute pixels
+// ═══════════════════════════════════════════════
+let tool='pen', color='#f44336', bsize=3;
+let drawing=false, strokes=[], aidx=-1, pbuf=[], ptmr=null;
+
+function startDraw(w) {
+  drawing=true;
+  const s={type:tool,points:[w.x,w.y],color,size:bsize};
+  aidx=strokes.length; strokes.push(s);
+  send({t:'sb',i:aidx,s});
+}
+function continueDraw(w) {
+  if(!drawing||aidx<0)return;
+  const s=strokes[aidx]; if(!s)return;
+  s.points.push(w.x,w.y); pbuf.push(w.x,w.y);
+  drawSFast(s);
+  if(!ptmr) ptmr=setTimeout(()=>{send({t:'sp',i:aidx,pts:[...pbuf]});pbuf=[];ptmr=null;},40);
+}
+function endDraw(){
+  if(!drawing)return; drawing=false;
+  clearTimeout(ptmr);ptmr=null;
+  if(pbuf.length){send({t:'se',i:aidx,pts:[...pbuf]});pbuf=[];}
+  replay(); aidx=-1;
+}
+
+function replay(){
+  dctx.clearRect(0,0,BASE_W,BASE_H);
+  strokes.forEach(s=>s&&drawS(s));
+}
+// Fast: only append last stroke without full clear
+function drawSFast(s){
+  if(!s?.points||s.points.length<4)return;
+  dctx.save();
+  dctx.globalCompositeOperation=s.type==='eraser'?'destination-out':'source-over';
+  dctx.strokeStyle=s.type==='eraser'?'rgba(0,0,0,1)':s.color;
+  dctx.lineWidth=s.size||3;
+  dctx.lineCap='round';dctx.lineJoin='round';
+  const n=s.points.length;
+  dctx.beginPath();
+  dctx.moveTo(s.points[n-4]*BASE_W,s.points[n-3]*BASE_H);
+  dctx.lineTo(s.points[n-2]*BASE_W,s.points[n-1]*BASE_H);
+  dctx.stroke();
+  dctx.restore();
+}
+function drawS(s){
+  if(!s?.points||s.points.length<2)return;
+  dctx.save();
+  dctx.globalCompositeOperation=s.type==='eraser'?'destination-out':'source-over';
+  dctx.strokeStyle=s.type==='eraser'?'rgba(0,0,0,1)':s.color;
+  dctx.lineWidth=s.size||3;
+  dctx.lineCap='round';dctx.lineJoin='round';
+  dctx.beginPath();
+  dctx.moveTo(s.points[0]*BASE_W,s.points[1]*BASE_H);
+  for(let i=2;i<s.points.length;i+=2)
+    dctx.lineTo(s.points[i]*BASE_W,s.points[i+1]*BASE_H);
+  dctx.stroke();
+  if(s.type==='arrow'&&s.points.length>=4){
+    const n=s.points.length;
+    const ex=s.points[n-2]*BASE_W,ey=s.points[n-1]*BASE_H;
+    const sx=s.points[n-4]*BASE_W,sy=s.points[n-3]*BASE_H;
+    const a=Math.atan2(ey-sy,ex-sx),al=16;
+    dctx.globalCompositeOperation='source-over';dctx.fillStyle=s.color;
+    dctx.beginPath();dctx.moveTo(ex,ey);
+    dctx.lineTo(ex-al*Math.cos(a-.4),ey-al*Math.sin(a-.4));
+    dctx.lineTo(ex-al*Math.cos(a+.4),ey-al*Math.sin(a+.4));
+    dctx.closePath();dctx.fill();
+  }
+  dctx.restore();
+}
+
+// ═══════════════════════════════════════════════
+//  TOOLBAR
+// ═══════════════════════════════════════════════
+// Position toolbar after layout
+function positionToolbar(){
+  const vwr=document.getElementById('vw').getBoundingClientRect();
+  const tb=document.getElementById('tb');
+  tb.style.left=(vwr.left+8)+'px';
+  tb.style.top=(vwr.top+vwr.height/2-tb.offsetHeight/2)+'px';
+}
+window.addEventListener('resize',positionToolbar);
+setTimeout(positionToolbar,200);
+
+function setTool(t){
+  tool=t;
+  ['tPan','tDraw','tEr','tArr'].forEach(id=>document.getElementById(id).classList.remove('on'));
+  const m={pan:'tPan',pen:'tDraw',eraser:'tEr',arrow:'tArr'};
+  if(m[t])document.getElementById(m[t]).classList.add('on');
+  document.getElementById('cp').classList.remove('show');
+  setToolCursor();
+}
+function setToolCursor(){
+  if(spaceDown){ov.style.cursor='grab';return;}
+  ov.style.cursor=tool==='pan'?'grab':tool==='eraser'?'cell':'crosshair';
+}
+document.getElementById('tPan').onclick=()=>setTool('pan');
+document.getElementById('tDraw').onclick=()=>setTool('pen');
+document.getElementById('tEr').onclick=()=>setTool('eraser');
+document.getElementById('tArr').onclick=()=>setTool('arrow');
+document.getElementById('tCol').onclick=e=>{
+  e.stopPropagation();
+  const cp=document.getElementById('cp');
+  const tb=document.getElementById('tb');
+  const tbr=tb.getBoundingClientRect();
+  cp.style.left=(tbr.right+6)+'px';
+  cp.style.top=(tbr.top+tbr.height/2-80)+'px';
+  cp.classList.toggle('show');
+};
+document.getElementById('tClr').onclick=clrAll;
+document.getElementById('cl2').onclick=clrAll;
+function clrAll(){strokes=[];dctx.clearRect(0,0,BASE_W,BASE_H);send({t:'clear'});}
+document.querySelectorAll('.cc').forEach(el=>el.onclick=e=>{
+  e.stopPropagation();color=el.dataset.c;
+  document.querySelectorAll('.cc').forEach(c=>c.classList.remove('s'));el.classList.add('s');
+  document.getElementById('md').style.background=color;
+});
+document.getElementById('bsz').oninput=e=>bsize=+e.target.value;
+document.addEventListener('click',()=>document.getElementById('cp').classList.remove('show'));
+
+// ═══════════════════════════════════════════════
+//  PEER JS
+// ═══════════════════════════════════════════════
+let peer=null,conn=null,myId=null,peerReady=false;
+let connected=false,remId=null;
+let hbt=null,hbw=null,rtts=[];
+let reconn=false,rtry=0;const MR=10;
+let msgQ=[];
+let curP=null,curL=0;
+
+function mkId(){return Array.from({length:6},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*32)]).join('');}
+function waitPeer(cb,n){n=n||0;if(typeof Peer!=='undefined'){cb();return;}if(n>40){setStatus('off','Ошибка загрузки');return;}setTimeout(()=>waitPeer(cb,n+1),300);}
+
+function initPeer(reuse){
+  if(peer){try{peer.destroy();}catch(_){}}
+  const sid=reuse||myId||mkId();myId=sid;
+  const bk=BROKERS[brokerI%BROKERS.length];
+  const opts=bk?{host:bk.host,port:bk.port,path:bk.path,secure:bk.secure,debug:0,config:ICE,pingInterval:5000}:{debug:0,config:ICE,pingInterval:5000};
+  peer=new Peer(sid,opts);peerReady=false;
+  const tout=setTimeout(()=>{if(peerReady)return;brokerI++;toast('Сервер не ответил','err');initPeer(sid);},6000);
+  peer.on('open',id=>{clearTimeout(tout);peerReady=true;myId=id;document.getElementById('idBox').textContent='🔑 '+id;setStatus('on','Ваш ID: '+id);});
+  peer.on('connection',c=>{if(conn&&conn.open){c.close();return;}remId=c.peer;setupConn(c);toast('Партнёр подключился!','ok');sysMsg('Партнёр подключился');});
+  peer.on('error',e=>{
+    clearTimeout(tout);
+    if(e.type==='peer-unavailable'){toast('Партнёр не найден','err');setStatus('on','Ваш ID: '+myId);document.getElementById('conBtn').disabled=false;}
+    else if(e.type==='unavailable-id'){myId=mkId();setTimeout(()=>initPeer(),300);}
+    else if(['network','server-error','socket-error','socket-closed'].includes(e.type)){brokerI++;setTimeout(()=>initPeer(myId),1500);}
+    else setStatus('warn','Ошибка: '+e.type);
+  });
+  peer.on('disconnected',()=>{peerReady=false;setTimeout(()=>{try{peer.reconnect();}catch(_){initPeer(myId);}},2000);});
+}
+
+function setupConn(c){
+  conn=c;remId=c.peer;
+  c.on('open',()=>{
+    connected=true;
+    document.getElementById('conBtn').style.display='none';
+    document.getElementById('disBtn').style.display='';
+    document.getElementById('pIn').disabled=true;
+    document.getElementById('pb').style.display='flex';
+    setStatus('on','Подключено: '+c.peer);
+    let m;while((m=msgQ.shift()))send(m);
+    send({t:'sync',prepId:curP?.id,li:curL,strokes,z:zoomLevel,sl:vp.scrollLeft,st:vp.scrollTop});
+    startHB();hideRco();toast('Соединение установлено!','ok');sysMsg('Соединение установлено');
+    reconn=false;rtry=0;
+  });
+  c.on('data',onData);
+  c.on('close',()=>onClose('Партнёр отключился'));
+  c.on('error',()=>onClose('Ошибка канала'));
+}
+function onClose(r){connected=false;stopHB();document.getElementById('pb').style.display='none';document.getElementById('rc2').style.display='none';sysMsg(r);if(remId&&!reconn)startReconn(r);else resetUI();}
+function resetUI(){conn=null;connected=false;reconn=false;rtry=0;document.getElementById('conBtn').style.display='';document.getElementById('disBtn').style.display='none';document.getElementById('pIn').disabled=false;document.getElementById('pb').style.display='none';}
+function send(d){if(conn&&conn.open){try{conn.send(d);return;}catch(_){}}if(!['cursor','ping','pong'].includes(d.t)&&msgQ.length<200)msgQ.push(d);}
+
+let _ps=0;
+function startHB(){stopHB();hbt=setInterval(()=>{if(!connected||!conn?.open)return;_ps=Date.now();send({t:'ping',ts:_ps});hbw=setTimeout(()=>{if(!connected)return;connected=false;stopHB();startReconn('Нет ответа');},7000);},5000);}
+function stopHB(){clearInterval(hbt);clearTimeout(hbw);}
+function updPing(rtt){rtts.push(rtt);if(rtts.length>5)rtts.shift();const avg=Math.round(rtts.reduce((a,b)=>a+b,0)/rtts.length);document.getElementById('pl').textContent=avg+'ms';const b=avg<80?4:avg<200?3:avg<400?2:1,cl=avg<80?'var(--gn)':avg<200?'var(--gn)':avg<400?'var(--yw)':'var(--rd)';[1,2,3,4].forEach(i=>{const el=document.getElementById('qs'+i);el.style.height=(3+i*3)+'px';el.style.background=i<=b?cl:'var(--bd)';});}
+
+let rcT=null;
+function startReconn(r){if(reconn||!remId)return;reconn=true;rtry=0;document.getElementById('rcm').textContent=r||'Соединение прервано';document.getElementById('rco').classList.add('show');doReconn();}
+function doReconn(){if(!reconn)return;rtry++;if(rtry>MR){stopReconn();resetUI();setStatus('off','Не удалось переподключиться');toast('Переподключение не удалось','err');return;}document.getElementById('rca').textContent='Попытка '+rtry+' / '+MR;rcT=setTimeout(()=>{if(!reconn)return;if(!peer||peer.destroyed){initPeer(myId);setTimeout(()=>tryConn(remId),3000);return;}tryConn(remId);},Math.min(1200*Math.pow(1.5,rtry-1),10000));}
+function tryConn(id){try{const c=peer.connect(id,{reliable:true,serialization:'json'});const tw=setTimeout(()=>{try{c.close();}catch(_){}doReconn();},6000);c.on('open',()=>{clearTimeout(tw);setupConn(c);});c.on('error',()=>{clearTimeout(tw);doReconn();});}catch(e){doReconn();}}
+function stopReconn(){reconn=false;clearTimeout(rcT);}
+function hideRco(){document.getElementById('rco').classList.remove('show');}
+document.getElementById('rcc').onclick=()=>{stopReconn();hideRco();resetUI();setStatus('on','Ваш ID: '+myId);};
+
+// ═══════════════════════════════════════════════
+//  DATA HANDLER
+// ═══════════════════════════════════════════════
+function onData(d){
+  if(!d?.t)return;
+  if(d.t==='ping'){send({t:'pong',ts:d.ts});return;}
+  if(d.t==='pong'){clearTimeout(hbw);if(d.ts)updPing(Date.now()-d.ts);return;}
+  if(d.t==='sync'){
+    if(d.prepId)loadById(d.prepId,d.li||0,false);
+    if(d.strokes){strokes=d.strokes;replay();}
+    if(d.z!=null)applyRemoteView(d);
+    return;
+  }
+  if(d.t==='prep'){loadById(d.id,d.li||0,false);return;}
+  if(d.t==='view'){applyRemoteView(d);return;}
+  if(d.t==='cursor'){
+    const sp=worldToScreen(d.wx,d.wy);
+    const el=document.getElementById('rc2');
+    el.style.display='';el.style.left=sp.x+'px';el.style.top=sp.y+'px';
+    document.getElementById('rn').textContent=d.n||'Партнёр';
+    return;
+  }
+  if(d.t==='sb'){while(strokes.length<=d.i)strokes.push(null);strokes[d.i]=d.s;replay();return;}
+  if(d.t==='sp'){if(strokes[d.i]){strokes[d.i].points.push(...d.pts);replay();}return;}
+  if(d.t==='se'){if(strokes[d.i]&&d.pts){strokes[d.i].points.push(...d.pts);replay();}return;}
+  if(d.t==='clear'){strokes=[];dctx.clearRect(0,0,BASE_W,BASE_H);sysMsg('Партнёр очистил');return;}
+  if(d.t==='chat'){addMsg(d.text,'th',d.n);return;}
+}
+
+// ═══════════════════════════════════════════════
+//  SIDEBAR
+// ═══════════════════════════════════════════════
+const S={a:'Сосуды и сердце',b:'ЖКТ',c:'Нервная система',d:'Органы чувств',e:'Эндокринная',f:'Дыхательная',g:'Кожа',h:'Кровь/иммунитет',i:'Мочевая',j:'Муж. репр.',k:'Жен. репр.',l:'Эмбриология'};
+function bldList(q){
+  const l=document.getElementById('pl2');l.innerHTML='';
+  const f=q?DATA.filter(d=>(d.title+d.id).toLowerCase().includes(q.toLowerCase())):DATA;
+  let ls=null;
+  f.forEach(d=>{
+    if(!q&&d.section!==ls){const h=document.createElement('div');h.className='sh';h.textContent=S[d.section]||d.section;l.appendChild(h);ls=d.section;}
+    const el=document.createElement('div');el.className='pi'+(curP&&curP.id===d.id?' active':'');
+    el.dataset.id=d.id;
+    el.innerHTML='<div class="pt">'+d.title+'</div><div class="pid">'+d.id+'</div>';
+    el.onclick=()=>loadP(d,0);l.appendChild(el);
+  });
+}
+bldList();
+document.getElementById('srch').oninput=e=>bldList(e.target.value);
+
+function loadP(prep,li,bc){
+  li=li||0;curP=prep;curL=li;
+  document.querySelectorAll('.pi').forEach(el=>el.classList.toggle('active',el.dataset.id===prep.id));
+  document.getElementById('ptitle').textContent=prep.title;
+  document.getElementById('ptitle').style.color='var(--tx)';
+  document.getElementById('np').style.display='none';
+  const lb=document.getElementById('lbs');lb.innerHTML='';
+  prep.vm_links.forEach((lk,i)=>{
+    const b=document.createElement('button');b.className='lb'+(i===li?' cur':'');
+    b.textContent=(lk.label||'Препарат')+(prep.vm_links.length>1?' '+(i+1):'');
+    b.onclick=()=>loadP(prep,i);lb.appendChild(b);
+  });
+  const url=prep.vm_links[li]?.url;
+  if(url){fr.src=url;setTimeout(resetZoom,200);}
+  if(bc!==false){send({t:'prep',id:prep.id,li});setTimeout(sendView,300);}
+}
+function loadById(id,li,bc){const p=DATA.find(d=>d.id===id);if(p)loadP(p,li,bc);}
+
+// ═══════════════════════════════════════════════
+//  CONNECTION UI
+// ═══════════════════════════════════════════════
+document.getElementById('conBtn').onclick=()=>{
+  const pid=document.getElementById('pIn').value.trim().toUpperCase();
+  if(!pid||pid.length<4){toast('Введите 6-значный ID','err');return;}
+  if(pid===myId){toast('Нельзя подключиться к себе','err');return;}
+  if(!peer||!peerReady){toast('Сервер ещё не готов...','err');return;}
+  remId=pid;document.getElementById('conBtn').disabled=true;
+  setStatus('','Подключение к '+pid+'...');
+  tryConn(pid);
+  setTimeout(()=>document.getElementById('conBtn').disabled=false,8000);
+};
+document.getElementById('disBtn').onclick=()=>{stopReconn();hideRco();remId=null;if(conn){try{conn.close();}catch(_){}}resetUI();setStatus('on','Ваш ID: '+myId);sysMsg('Вы отключились');};
+document.getElementById('pIn').addEventListener('input',e=>{e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'');});
+document.getElementById('pIn').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('conBtn').click();});
+document.getElementById('idBox').onclick=()=>{if(!myId)return;navigator.clipboard.writeText(myId).catch(()=>{});toast('Скопировано: '+myId,'ok');};
+function setStatus(s,m){document.getElementById('dot').className='dot'+(s?' '+s:'');document.getElementById('stxt').textContent=s==='on'?'В сети':s==='off'?'Не подключён':s==='warn'?'Нестабильно':'...';document.getElementById('sm').textContent=m;}
+
+// ═══════════════════════════════════════════════
+//  CHAT
+// ═══════════════════════════════════════════════
+function addMsg(t,w,n){const d=document.createElement('div');d.className='mg '+w;d.innerHTML='<div class="mw">'+(w==='me'?'Вы':n||'Партнёр')+'</div>'+t;document.getElementById('ms').appendChild(d);document.getElementById('ms').scrollTop=99999;}
+function sysMsg(t){const d=document.createElement('div');d.className='mg sy';d.textContent='— '+t+' —';document.getElementById('ms').appendChild(d);document.getElementById('ms').scrollTop=99999;}
+document.getElementById('cs').onclick=sndC;
+document.getElementById('ct').onkeydown=e=>{if(e.key==='Enter')sndC();};
+function sndC(){const t=document.getElementById('ct').value.trim();if(!t)return;addMsg(t,'me');send({t:'chat',text:t,n:'Партнёр'});document.getElementById('ct').value='';}
+
+// ═══════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════
+let tT;function toast(m,tp){const el=document.getElementById('tst');el.textContent=m;el.className='show'+(tp?' '+tp:'');clearTimeout(tT);tT=setTimeout(()=>el.className='',3000);}
+
+// ═══════════════════════════════════════════════
+//  START
+// ═══════════════════════════════════════════════
+applyZoom();
+setStatus('','Загрузка...');
+waitPeer(()=>initPeer());
+setTool('pen');
+setTimeout(positionToolbar,300);
+</script>
+</body>
+</html>

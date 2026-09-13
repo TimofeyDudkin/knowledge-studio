@@ -1,0 +1,234 @@
+@keyframes img-drop-fadein  { from { opacity:0; } to { opacity:1; } }
+@keyframes img-drop-bounce  { from { transform: translateY(0) scale(1); } to { transform: translateY(-5px) scale(1.05); } }
+@keyframes iiv-slidein      { from { opacity:0; transform: translateY(14px) scale(0.98); } to { opacity:1; transform: none; } }
+
+/* ── Глобальный drag-overlay с двумя зонами ────────────────── */
+.img-drop-overlay-global {
+  position: fixed;
+  inset: 0;
+  z-index: 19000;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: img-drop-fadein 0.15s ease;
+}
+.img-drop-global-inner {
+  display: flex;
+  gap: 24px;
+  align-items: stretch;
+}
+.img-drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 220px;
+  min-height: 180px;
+  padding: 28px 20px;
+  border-radius: 18px;
+  border: 2px dashed rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.7);
+  transition: border-color 0.15s, background 0.15s, transform 0.15s, color 0.15s;
+  cursor: default;
+  pointer-events: none;
+}
+.img-drop-zone--hover {
+  border-color: var(--accent, #7c6af7);
+  background: color-mix(in srgb, var(--accent, #7c6af7) 18%, rgba(0,0,0,0.4));
+  color: #fff;
+  transform: scale(1.04);
+}
+.img-drop-zone-icon  { font-size: 38px; animation: img-drop-bounce 0.7s ease infinite alternate; }
+.img-drop-zone-title { font-size: 15px; font-weight: 700; text-align: center; }
+.img-drop-zone-sub   { font-size: 12px; opacity: .7; text-align: center; line-height: 1.4; }
+
+/* Toast-уведомление */
+.img-drop-hint {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  background: var(--bg-sidebar, #18181b);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  z-index: 20000;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.img-drop-hint--show  { opacity:1; transform: translateX(-50%) translateY(0); }
+.img-drop-hint--success { border-color: #4ade80; }
+.img-drop-hint--error   { border-color: #f87171; }
+
+/* Кнопка картинки в тулбаре */
+.ap-img-btn { color: var(--text-muted); }
+.ap-img-btn:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+
+/* Картинки в ответе */
+.ap-answer-body .md-img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 14px auto;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  cursor: zoom-in;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.ap-answer-body .md-img:hover {
+  transform: scale(1.01);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+}
+
+/* Лайтбокс (клик по картинке в ответе) */
+.img-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 19500;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+  animation: img-drop-fadein 0.18s ease;
+}
+.img-lightbox img {
+  max-width: 92vw;
+  max-height: 90vh;
+  border-radius: 10px;
+  box-shadow: 0 16px 60px rgba(0,0,0,0.6);
+  pointer-events: none;
+}
+
+/* ══ ВСТРОЕННЫЙ ПРОСМОТРЩИК ИЗОБРАЖЕНИЙ ════════════════════════ */
+.img-inline-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 18000;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-base, #0d0d0f);
+  opacity: 0;
+  transform: translateY(10px) scale(0.99);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  /* Не блокируем события вне viewer пока он не полностью появился */
+  pointer-events: none;
+}
+.img-inline-viewer.iiv-visible {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+.img-inline-viewer.iiv-closing {
+  opacity: 0;
+  transform: translateY(6px) scale(0.99);
+  pointer-events: none;
+}
+
+/* Тулбар просмотрщика */
+.iiv-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--bg-sidebar, #111113);
+  border-bottom: 1px solid var(--border-default, #2a2a2e);
+  flex-shrink: 0;
+  user-select: none;
+}
+.iiv-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+  margin-right: 4px;
+}
+.iiv-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+.iiv-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border-default, #2a2a2e);
+  margin: 0 4px;
+}
+.iiv-btn {
+  padding: 4px 10px;
+  height: 28px;
+  border: 1px solid var(--border-default, #2a2a2e);
+  border-radius: 7px;
+  background: var(--bg-card, #18181b);
+  color: var(--text-secondary, #a0a0ab);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+}
+.iiv-btn:hover { background: var(--bg-hover, #232326); color: var(--text-primary, #fff); border-color: var(--border-hover, #444); }
+.iiv-btn-insert {
+  color: var(--accent, #7c6af7);
+  border-color: color-mix(in srgb, var(--accent, #7c6af7) 40%, transparent);
+}
+.iiv-btn-insert:hover { background: color-mix(in srgb, var(--accent, #7c6af7) 14%, transparent); color: var(--accent, #7c6af7); }
+.iiv-btn-close { color: var(--text-muted, #6b6b80); }
+.iiv-btn-close:hover { color: #f87171; border-color: #f87171; background: rgba(248,113,113,0.08); }
+.iiv-zoom-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  min-width: 42px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Канвас */
+.iiv-canvas-wrap {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  background: color-mix(in srgb, var(--bg-base, #0d0d0f) 90%, #fff 10%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+}
+.iiv-canvas-wrap:active { cursor: grabbing; }
+.iiv-img {
+  position: absolute;
+  transform-origin: center center;
+  user-select: none;
+  pointer-events: none;
+  border-radius: 4px;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.4);
+  will-change: transform;
+}
+
+/* Подсказка внизу */
+.iiv-hint {
+  padding: 6px 16px;
+  font-size: 11px;
+  color: var(--text-muted, #6b6b80);
+  background: var(--bg-sidebar, #111113);
+  border-top: 1px solid var(--border-default, #2a2a2e);
+  text-align: center;
+  flex-shrink: 0;
+  user-select: none;
+}
